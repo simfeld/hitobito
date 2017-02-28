@@ -1,8 +1,7 @@
-#  Copyright (c) 2012-2015, Jungwacht Blauring Schweiz. This file is part of
+#  Copyright (c) 2012-2017, Jungwacht Blauring Schweiz. This file is part of
 #  hitobito and licensed under the Affero General Public License version 3
 #  or later. See the COPYING file at the top-level directory or at
 #  https://github.com/hitobito/hitobito.
-
 
 de:
 
@@ -43,6 +42,7 @@ de:
       back: Zurück
       refresh: Aktualisieren
       print: Drucken
+      next: Weiter
 
     link:
       show: Anzeigen
@@ -298,6 +298,9 @@ de:
         explanation: Du bist für diesen Anlass angemeldet.
         caption: Abmelden
         confirmation: "Bist Du sicher, dass Du dich von diesem Anlass abmelden möchtest?"
+      stepwizard:
+        contact_details: 'Kontaktangaben'
+        registration: 'Anmeldung'
 
     register:
       register:
@@ -362,7 +365,7 @@ de:
 
   event/participations:
     full_entry_label: '%{model_label} von <i>%{person}</i> in <i>%{event}</i>'
-    success: '%{full_entry_label} wurde erfolgreich erstellt. Bitte überprüfe die Kontaktdaten und passe diese gegebenenfalls an.'
+    success: '%{full_entry_label} wurde erfolgreich erstellt.'
     instructions: 'Für die definitive Anmeldung musst du diese Seite über <i>Drucken</i> ausdrucken, unterzeichnen und per Post an die entsprechende Adresse schicken.'
 
     show:

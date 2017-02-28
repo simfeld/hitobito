@@ -1,6 +1,6 @@
 # encoding: utf-8
 
-#  Copyright (c) 2012-2013, Jungwacht Blauring Schweiz. This file is part of
+#  Copyright (c) 2012-2017, Jungwacht Blauring Schweiz. This file is part of
 #  hitobito and licensed under the Affero General Public License version 3
 #  or later. See the COPYING file at the top-level directory or at
 #  https://github.com/hitobito/hitobito.
@@ -351,8 +351,6 @@ describe Event::ParticipationsController do
 
         expect(flash[:notice]).
           to include 'Teilnahme von <i>Top Leader</i> in <i>Eventus</i> wurde erfolgreich erstellt.'
-        expect(flash[:notice]).
-          to include 'Bitte überprüfe die Kontaktdaten und passe diese gegebenenfalls an.'
       end
 
       it 'creates non-active participant role for course events' do
@@ -375,8 +373,6 @@ describe Event::ParticipationsController do
 
         expect(flash[:notice]).
           to include 'Teilnahme von <i>Top Leader</i> in <i>Eventus</i> wurde erfolgreich erstellt.'
-        expect(flash[:notice]).
-          to include 'Bitte überprüfe die Kontaktdaten und passe diese gegebenenfalls an.'
       end
 
       it 'creates specific non-active participant role for course events' do
@@ -395,8 +391,6 @@ describe Event::ParticipationsController do
         expect(role).to be_kind_of(TestParticipant)
         expect(flash[:notice]).
           to include 'Teilnahme von <i>Top Leader</i> in <i>Eventus</i> wurde erfolgreich erstellt.'
-        expect(flash[:notice]).
-          to include 'Bitte überprüfe die Kontaktdaten und passe diese gegebenenfalls an.'
         expect(role.participation).to eq participation.model
       end
 
@@ -421,8 +415,6 @@ describe Event::ParticipationsController do
 
         expect(flash[:notice]).
           to include 'Teilnahme von <i>Top Leader</i> in <i>Eventus</i> wurde erfolgreich erstellt.'
-        expect(flash[:notice]).
-          to include 'Bitte überprüfe die Kontaktdaten und passe diese gegebenenfalls an.'
       end
 
       it 'fails for invalid event role' do

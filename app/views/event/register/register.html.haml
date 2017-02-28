@@ -1,15 +1,17 @@
--#  Copyright (c) 2012-2013, Jungwacht Blauring Schweiz. This file is part of
+-#  Copyright (c) 2012-2017, Jungwacht Blauring Schweiz. This file is part of
 -#  hitobito and licensed under the Affero General Public License version 3
 -#  or later. See the COPYING file at the top-level directory or at
 -#  https://github.com/hitobito/hitobito.
 
 - title t('.title')
 
+= render 'event/participations/stepwizard', current_step: 1
 = crud_form(entry,
             url: register_group_event_path(group, event),
             method: :put,
-            cancel_url: register_group_event_path(group, event),
-            buttons_bottom: true) do |f|
+            cancel_url: group_public_event_path(group, event),
+            buttons_bottom: true,
+            submit_label: t('global.button.next')) do |f|
   = render 'people/fields', f: f, without_relations: true
 
   = f.honeypot

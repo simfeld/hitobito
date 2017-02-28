@@ -1,6 +1,6 @@
 # encoding: utf-8
 
-#  Copyright (c) 2014 insieme Schweiz. This file is part of
+#  Copyright (c) 2012-2017, Jungwacht Blauring Schweiz. This file is part of
 #  hitobito and licensed under the Affero General Public License version 3
 #  or later. See the COPYING file at the top-level directory or at
 #  https://github.com/hitobito/hitobito.
@@ -56,7 +56,7 @@ module Dropdown
       def init_items(url_options)
         event.participant_types.each do |type|
           opts = url_options.merge(event_role: { type: type.sti_name })
-          link = template.new_group_event_participation_path(group, event, opts)
+          link = template.group_event_participations_edit_person_path(group, event, opts)
           add_item(translate(:as, role: type.label), link)
         end
       end

@@ -1,6 +1,6 @@
 # encoding: utf-8
 
-#  Copyright (c) 2012-2015, Jungwacht Blauring Schweiz. This file is part of
+#  Copyright (c) 2012-2017, Jungwacht Blauring Schweiz. This file is part of
 #  hitobito and licensed under the Affero General Public License version 3
 #  or later. See the COPYING file at the top-level directory or at
 #  https://github.com/hitobito/hitobito.
@@ -41,6 +41,7 @@ module FormHelper
     buttons_bottom = options.delete(:buttons_bottom)
     buttons_top = options.delete(:buttons_top) { true }
     submit_label = options.delete(:submit_label)
+    cancel_label = options.delete(:cancel_label)
     cancel_url = get_cancel_url(object, options)
 
     standard_form(object, options) do |form|
@@ -48,23 +49,22 @@ module FormHelper
 
       content << save_form_buttons(form, submit_label, cancel_url, 'top') if buttons_top
 
-      content << if block_given?
-                   capture(form, &block)
-                 else
-                   form.labeled_input_fields(*attrs)
-                 end
+      content << (block_given? ? capture(form, &block) : form.labeled_input_fields(*attrs))
 
-      content << save_form_buttons(form, submit_label, cancel_url, 'bottom') if buttons_bottom
+      if buttons_bottom
+        content << save_form_buttons(form, submit_label, cancel_url, 'bottom', cancel_label)
+      end
 
       content.html_safe
     end
   end
 
-  def save_form_buttons(form, submit_label, cancel_url, toolbar_class = nil)
+  def save_form_buttons(form, submit_label, cancel_url, toolbar_class = nil, cancel_label = nil)
+    cancel_label ||= ti(:"button.cancel")
     submit_label ||= ti(:"button.save")
     content_tag(:div, class: "btn-toolbar #{toolbar_class}") do
       submit_button(form, submit_label) +
-      cancel_link(cancel_url)
+      cancel_link(cancel_url, cancel_label)
     end
   end
 
@@ -74,8 +74,8 @@ module FormHelper
     end
   end
 
-  def cancel_link(url)
-    link_to(ti(:"button.cancel"), url, class: 'link cancel')
+  def cancel_link(url, label = ti(:"button.cancel"))
+    link_to(label, url, class: 'link cancel')
   end
 
   def spinner

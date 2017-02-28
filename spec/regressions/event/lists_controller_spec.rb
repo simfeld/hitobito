@@ -1,6 +1,6 @@
 # encoding: utf-8
 
-#  Copyright (c) 2012-2013, Jungwacht Blauring Schweiz. This file is part of
+#  Copyright (c) 2012-2017, Jungwacht Blauring Schweiz. This file is part of
 #  hitobito and licensed under the Affero General Public License version 3
 #  or later. See the COPYING file at the top-level directory or at
 #  https://github.com/hitobito/hitobito.
@@ -53,10 +53,10 @@ describe Event::ListsController, type: :controller do
         get :events
 
         expect(link.text.strip).to eq 'Anmelden'
-        expect(link[:href]).to eq new_group_event_participation_path(event.groups.first,
-                                                                 event,
-                                                                 event_role: {
-                                                                   type: event.class.participant_types.first.sti_name})
+        expect(link[:href]).to eq group_event_participations_edit_person_path(event.groups.first,
+                                                                         event,
+                                                                         event_role: {
+                                                                           type: event.class.participant_types.first.sti_name})
       end
     end
   end

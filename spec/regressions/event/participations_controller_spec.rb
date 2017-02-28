@@ -1,6 +1,6 @@
 # encoding: utf-8
 
-#  Copyright (c) 2012-2013, Jungwacht Blauring Schweiz. This file is part of
+#  Copyright (c) 2012-2017, Jungwacht Blauring Schweiz. This file is part of
 #  hitobito and licensed under the Affero General Public License version 3
 #  or later. See the COPYING file at the top-level directory or at
 #  https://github.com/hitobito/hitobito.
@@ -80,10 +80,11 @@ describe Event::ParticipationsController, type: :controller do
 
   describe 'POST create' do
     [:event_base, :course].each do |event_sym|
-      it "prompts to change contact data for #{event_sym}" do
+      it "prompts that the participation was created #{event_sym}" do
         event = send(event_sym)
         post :create, group_id: group.id, event_id: event.id, event_participation: test_entry_attrs
-        expect(flash[:notice]).to match(/Bitte überprüfe die Kontaktdaten/)
+        expect(flash[:notice]).to match(/Teilnahme von/)
+        expect(flash[:notice]).to match(/wurde erfolgreich erstellt/)
         is_expected.to redirect_to group_event_participation_path(group, event,
                                                                   assigns(:participation))
       end
