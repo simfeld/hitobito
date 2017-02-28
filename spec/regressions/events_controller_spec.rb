@@ -117,4 +117,40 @@ describe EventsController, type: :controller do
     end
   end
 
+  describe 'GET #edit' do
+    render_views
+    let(:group) { groups(:top_layer) }
+    let(:dom) { Capybara::Node::Simple.new(response.body) }
+
+
+    it 'sets contact detail radio buttons correct' do
+      event = events(:top_event)
+      event.update_attributes(required_contact_details: %w(email first_name last_name nickname))
+      event.update_attributes(optional_contact_details: %w(company company_name address town))
+
+      get :edit, group_id: group.id, id: event
+
+      # cannot edit default required contact details
+      expect(dom.find('#event_contact_details_email_required')[:disabled]).to eq('disabled')
+      expect(dom.find('#event_contact_details_first_name_required')[:disabled]).to eq('disabled')
+      expect(dom.find('#event_contact_details_last_name_required')[:disabled]).to eq('disabled')
+
+      # required contact deatils
+      expect(dom.find('#event_contact_details_nickname_required')[:checked]).to eq('checked')
+
+      # optional contact deatils
+      expect(dom.find('#event_contact_details_company_optional')[:checked]).to eq('checked')
+      expect(dom.find('#event_contact_details_company_name_optional')[:checked]).to eq('checked')
+      expect(dom.find('#event_contact_details_address_optional')[:checked]).to eq('checked')
+      expect(dom.find('#event_contact_details_town_optional')[:checked]).to eq('checked')
+
+      # not shown contact details
+      expect(dom.find('#event_contact_details_country_')[:checked]).to eq('checked')
+      expect(dom.find('#event_contact_details_additional_emails_')[:checked]).to eq('checked')
+      expect(dom.find('#event_contact_details_phone_numbers_')[:checked]).to eq('checked')
+      expect(dom.find('#event_contact_details_social_accounts_')[:checked]).to eq('checked')
+    end
+
+  end
+
 end

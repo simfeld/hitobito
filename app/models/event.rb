@@ -37,9 +37,20 @@
 #  signature_confirmation_text :string
 #  creator_id                  :integer
 #  updater_id                  :integer
+#  required_contact_details    :string
+#  optional_contact_details    :string
 #
 
 class Event < ActiveRecord::Base
+
+  REQUIRED = 'required'.freeze
+  OPTIONAL = 'optional'.freeze
+  REQUIRED_CONTACT_DETAILS = %w(email first_name last_name).freeze
+  DEFAULT_CONTACT_DETAILS = %w(nickname company_name company address town country 
+                       additional_emails phone_numbers social_accounts).freeze
+
+  SPECIAL_CONTACT_DETAILS = %w(additional_emails phone_numbers social_accounts town).freeze
+
 
   # This statement is required because these classes would not be loaded correctly otherwise.
   # The price we pay for using classes as namespace.
@@ -59,6 +70,7 @@ class Event < ActiveRecord::Base
                   :supports_applications,
                   :possible_states,
                   :kind_class
+
 
   # All attributes actually used (and mass-assignable) by the respective STI type.
   self.used_attributes = [:name, :motto, :cost, :maximum_participants, :contact_id,
@@ -87,6 +99,11 @@ class Event < ActiveRecord::Base
   model_stamper
   stampable stamper_class_name: :person,
             deleter: false
+
+  ### SERIALIZED ATTRIBUTES
+  serialize :required_contact_details, Array
+
+  serialize :optional_contact_details
 
   ### ASSOCIATIONS
 
@@ -121,6 +138,7 @@ class Event < ActiveRecord::Base
             length: { allow_nil: true, maximum: 2**16 - 1 }
   validate :assert_type_is_allowed_for_groups
   validate :assert_application_closing_is_after_opening
+  validate :assert_company_name_is_optional_if_company_is_required
 
 
   ### CALLBACKS
@@ -226,6 +244,38 @@ class Event < ActiveRecord::Base
 
 
   ### INSTANCE METHODS
+  
+  def required_contact_details
+    (super + REQUIRED_CONTACT_DETAILS).flatten
+  end
+
+  def optional_contact_details
+    super || DEFAULT_CONTACT_DETAILS - ['social_accounts', 'additional_emails']
+  end
+
+  def optional_contact_details=(value)
+    raise ActiveRecord::SerializationTypeMismatch unless value.is_a?(Array)
+    super
+  end
+
+  # assigns the contact details from the given params to the event
+  def assign_contact_details(params)
+    return if params.nil?
+    self.required_contact_details = collect_contact_details(params, REQUIRED)
+    self.optional_contact_details = collect_contact_details(params, OPTIONAL)
+  end
+  
+  def required_contact_detail?(attr)
+    required_contact_details.include?(attr.to_s)
+  end
+
+  def optional_contact_detail?(attr)
+    optional_contact_details.include?(attr.to_s)
+  end
+
+  def not_shown_contact_detail?(attr)
+    !optional_contact_detail?(attr) && !required_contact_detail?(attr)
+  end
 
   def to_s(_format = :default)
     name
@@ -260,6 +310,13 @@ class Event < ActiveRecord::Base
 
   private
 
+  # collects the contact details out of the params for the given option
+  def collect_contact_details(params, option)
+    params.collect do |key, value|
+      key.to_s if value == option
+    end.compact
+  end
+
   def assert_type_is_allowed_for_groups
     if groups.present?
       master = groups.first
@@ -274,6 +331,12 @@ class Event < ActiveRecord::Base
   def assert_application_closing_is_after_opening
     unless application_duration.meaningful?
       errors.add(:application_closing_at, :must_be_after_opening)
+    end
+  end
+
+  def assert_company_name_is_optional_if_company_is_required
+    if required_contact_detail?(:company) && not_shown_contact_detail?(:company_name)
+      errors.add(:contact_detail, I18n.t('activerecord.attributes.event.company_name_required'))
     end
   end
 

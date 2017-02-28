@@ -37,4 +37,30 @@ module EventsHelper
     safe_join(texts.select(&:present?).map { |text| simple_format(text) })
   end
 
+  def contact_detail_radio_button(label, key, value = '', options = {})
+    active = current_field_active?(key, value)
+    label_tag key, class: 'radio inline' do
+      radio_button_tag("event[contact_details[#{key}]]", value, active, options) + label
+    end
+  end
+
+  private
+
+  def current_field_active?(attr, option)
+    return true if optional_active?(attr, option)
+    return true if required_active?(attr, option)
+    return true if not_shown_active?(attr, option)
+  end
+
+  def required_active?(attr, option)
+    @event.required_contact_detail?(attr) && option == Event::REQUIRED
+  end
+
+  def optional_active?(attr, option)
+    @event.optional_contact_detail?(attr) && option == Event::OPTIONAL
+  end
+
+  def not_shown_active?(attr, option)
+    @event.not_shown_contact_detail?(attr) && option == ''
+  end
 end

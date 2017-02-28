@@ -125,7 +125,7 @@ describe Event::RegisterController do
     context 'with valid data' do
       it 'creates person' do
         expect do
-          put :register, group_id: group.id, id: event.id, person: { last_name: 'foo', email: 'not-existing@example.com' }
+          put :register, group_id: group.id, id: event.id, person: { last_name: 'foo', first_name: 'foo',email: 'not-existing@example.com' }
         end.to change { Person.count }.by(1)
 
         is_expected.to redirect_to(new_group_event_participation_path(group, event))

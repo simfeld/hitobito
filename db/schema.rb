@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170103142035) do
+ActiveRecord::Schema.define(version: 20170228132239) do
 
   create_table "additional_emails", force: :cascade do |t|
     t.integer "contactable_id",   limit: 4,                  null: false
@@ -190,6 +190,8 @@ ActiveRecord::Schema.define(version: 20170103142035) do
     t.integer  "creator_id",                  limit: 4
     t.integer  "updater_id",                  limit: 4
     t.boolean  "applications_cancelable",                   default: false, null: false
+    t.string   "required_contact_details"
+    t.string   "optional_contact_details"
   end
 
   add_index "events", ["kind_id"], name: "index_events_on_kind_id"
@@ -466,15 +468,15 @@ ActiveRecord::Schema.define(version: 20170103142035) do
     t.datetime "created_at"
   end
 
-  add_index "taggings", ["tag_id", "taggable_id", "taggable_type", "context", "tagger_id", "tagger_type"], name: "taggings_idx", unique: true, using: :btree
-  add_index "taggings", ["taggable_id", "taggable_type", "context"], name: "index_taggings_on_taggable_id_and_taggable_type_and_context", using: :btree
+  add_index "taggings", ["tag_id", "taggable_id", "taggable_type", "context", "tagger_id", "tagger_type"], name: "taggings_idx", unique: true
+  add_index "taggings", ["taggable_id", "taggable_type", "context"], name: "index_taggings_on_taggable_id_and_taggable_type_and_context"
 
   create_table "tags", force: :cascade do |t|
     t.string  "name",           limit: 255
     t.integer "taggings_count", limit: 4,   default: 0
   end
 
-  add_index "tags", ["name"], name: "index_tags_on_name", unique: true, using: :btree
+  add_index "tags", ["name"], name: "index_tags_on_name", unique: true
 
   create_table "versions", force: :cascade do |t|
     t.string   "item_type",      limit: 255,   null: false

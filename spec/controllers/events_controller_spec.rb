@@ -59,6 +59,8 @@ describe EventsController do
     context 'POST create' do
       let(:date)  { { label: 'foo', start_at_date: Date.today, finish_at_date: Date.today } }
       let(:question)  { { question: 'foo?', choices: '1,2,3,4' } }
+      let(:contact_details) { { nickname: Event::OPTIONAL, 
+                                company_name: Event::REQUIRED } }
 
       it 'creates new event course with dates' do
         sign_in(people(:top_leader))
@@ -69,7 +71,8 @@ describe EventsController do
                                 dates_attributes: [date],
                                 questions_attributes: [question],
                                 contact_id: people(:top_leader).id,
-                                type: 'Event::Course' },
+                                type: 'Event::Course',
+                                contact_details: contact_details },
                       group_id: group.id
 
         event = assigns(:event)
@@ -78,6 +81,8 @@ describe EventsController do
         expect(event.dates.size).to eq(1)
         expect(event.dates.first).to be_persisted
         expect(event.questions.size).to eq(1)
+        expect(event.required_contact_details.size).to eq(4)
+        expect(event.optional_contact_details.size).to eq(1)
         expect(event.questions.first).to be_persisted
 
         expect(event.group_ids).to match_array([group.id, group2.id])
@@ -160,6 +165,29 @@ describe EventsController do
         expect(first.choices).to eq '1,2,3'
         second = questions.second
         expect(second.question).to eq 'Whoo?'
+      end
+
+      it 'create and updates contact details' do
+        contact_details = { nickname: Event::OPTIONAL, 
+                                address: Event::OPTIONAL,
+                                company_name: Event::REQUIRED,
+                                company: Event::REQUIRED }
+        
+        put :update, group_id: group.id,
+                     id: event.id,
+                     event: { name: 'testevent', 
+                     contact_details: contact_details }
+
+        expect(assigns(:event)).to be_valid
+
+        expect(event.reload.name).to eq 'testevent'
+        expect(event.required_contact_details.size).to eq(5)
+        expect(event.required_contact_details).to include('company_name')
+        expect(event.required_contact_details).to include('company')
+        expect(event.optional_contact_details.size).to eq(2)
+        expect(event.optional_contact_details).to include('nickname')
+        expect(event.optional_contact_details).to include('address')
+      
       end
     end
 

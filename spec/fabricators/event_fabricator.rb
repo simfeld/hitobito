@@ -37,6 +37,8 @@
 #  signature_confirmation_text :string
 #  creator_id                  :integer
 #  updater_id                  :integer
+#  required_contact_details    :string
+#  optional_contact_details    :string
 #
 
 Fabricator(:event) do

@@ -228,6 +228,19 @@ class Person < ActiveRecord::Base
     extra = now.month > birthday.month || (now.month == birthday.month && now.day >= birthday.day)
     now.year - birthday.year - (extra ? 0 : 1)
   end
+  
+  ### VALIDATION INSTANCE METHODS
+
+  def valid_for_event?(event)
+    event.required_contact_details.each do |attr|
+
+      if send(attr).blank? || invalid_association?(attr)
+        attr = :zip_code if attr == 'town'
+        errors.add(attr.to_sym, I18n.t('activerecord.errors.models.person.required'))
+      end
+    end
+    errors.blank?
+  end
 
   ### AUTHENTICATION INSTANCE METHODS
 
@@ -259,6 +272,17 @@ class Person < ActiveRecord::Base
   end
 
   private
+
+  def invalid_association?(attr)
+    return false unless self.class._reflect_on_association(attr)
+
+    associations = Array.wrap(send(attr)).reject(&:marked_for_destruction?)
+    return true if associations.blank?
+
+    associations.each do |association|
+      return true unless association.valid?
+    end
+  end
 
   def override_blank_email
     self.email = nil if email.blank?

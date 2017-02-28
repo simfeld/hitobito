@@ -9,7 +9,7 @@ module Dropdown
   module Event
     class ParticipantAdd < Dropdown::Base
 
-      attr_reader :group, :event
+      attr_reader :group, :event, :user
 
       class << self
         def for_user(template, group, event, user)
@@ -32,6 +32,7 @@ module Dropdown
         super(template, label, icon)
         @group = group
         @event = event
+        @user  = template.current_user
         init_items(url_options)
       end
 
@@ -56,7 +57,7 @@ module Dropdown
       def init_items(url_options)
         event.participant_types.each do |type|
           opts = url_options.merge(event_role: { type: type.sti_name })
-          link = template.group_event_participations_edit_person_path(group, event, opts)
+          link = template.edit_group_event_participation_person_path(group, event, user, opts)
           add_item(translate(:as, role: type.label), link)
         end
       end

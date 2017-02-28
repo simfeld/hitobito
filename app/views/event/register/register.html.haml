@@ -12,6 +12,7 @@
             cancel_url: group_public_event_path(group, event),
             buttons_bottom: true,
             submit_label: t('global.button.next')) do |f|
-  = render 'people/fields', f: f, without_relations: true
+
+  = render 'event/participation/people/fields', f: f
 
   = f.honeypot

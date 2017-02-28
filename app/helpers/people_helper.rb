@@ -52,4 +52,52 @@ module PeopleHelper
   def person_link(person)
     person ? assoc_link(person) : "(#{t('global.nobody')})"
   end
+
+  def event_customized_form_fields(f)
+    content = Event::REQUIRED_CONTACT_DETAILS.collect do |attr|
+      default_contact_detail_field(attr, f, true)
+    end
+
+    content + default_contact_detail_fields(f)
+  end
+
+  def default_contact_detail_fields(f)
+    Event::DEFAULT_CONTACT_DETAILS.collect do |attr|
+      next if event.not_shown_contact_detail?(attr)
+      required = event.required_contact_detail?(attr)
+
+      if Event::SPECIAL_CONTACT_DETAILS.include?(attr)
+        special_contact_detail_field(attr, f, required)
+      else
+        default_contact_detail_field(attr, f, required)
+      end
+    end
+  end
+
+  def special_contact_detail_field(attr, f, required)
+    return town_contact_detail_field(f, required) if attr == 'town'
+    partial_name = "contactable/#{attr.singularize}_fields"
+    field_set_tag do
+      f.labeled_inline_fields_for(attr, partial_name, nil, required)
+    end
+  end
+  
+  def default_contact_detail_field(attr, f, required)
+    if required
+      f.labeled(attr.to_sym) do
+        f.input_field(attr.to_sym) + StandardFormBuilder::REQUIRED_MARK
+      end
+    else
+        f.labeled_input_field(attr.to_sym)
+    end
+  end
+
+  def town_contact_detail_field(f, required)
+    required_mark = required ? StandardFormBuilder::REQUIRED_MARK : ''
+    f.labeled(:zip_code, t('contactable.fields.zip_town'), nil, class: 'controls-row') do
+      f.string_field(:zip_code, class: 'span2', maxlength: 10) +
+      f.input_field(:town, class: 'span4') +
+      required_mark
+    end
+  end
 end

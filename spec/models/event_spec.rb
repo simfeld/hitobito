@@ -37,6 +37,8 @@
 #  signature_confirmation_text :string
 #  creator_id                  :integer
 #  updater_id                  :integer
+#  required_contact_details    :string
+#  optional_contact_details    :string
 #
 
 require 'spec_helper'
@@ -535,6 +537,35 @@ describe Event do
       end
     end
 
+  end
+
+  context 'contact details' do
+    let(:event) { events(:top_course) }
+    
+    it 'assigns contact details' do
+      event.assign_contact_details({ nickname: Event::OPTIONAL,
+                                     company: Event::REQUIRED })
+      
+      expect(event.optional_contact_detail?('nickname')).to be(true)
+      expect(event.required_contact_detail?('company')).to be(true)
+      expect(event.not_shown_contact_detail?('address')).to be(true)
+    end
+
+    it 'cannot assign contact details if its not an array' do
+      expect do
+        event.required_contact_details = {test: 'not an array'}
+      end.to raise_error(ActiveRecord::SerializationTypeMismatch)
+
+      expect do
+        event.optional_contact_details = {test: 'not an array'}
+      end.to raise_error(ActiveRecord::SerializationTypeMismatch)
+    end
+
+    it 'returns default values if nothin is set' do
+      optional_contact_details = Event::DEFAULT_CONTACT_DETAILS - ['social_accounts', 'additional_emails']
+      expect(event.required_contact_details).to eq(Event::REQUIRED_CONTACT_DETAILS)
+      expect(event.optional_contact_details).to eq(optional_contact_details)
+    end
   end
 
 

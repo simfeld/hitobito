@@ -14,7 +14,28 @@ describe EventsController, js: true do
     event.dates.create!(start_at: 10.days.ago, finish_at: 5.days.ago)
     event
   end
+  
+  it 'goes through the event registration' do
+    obsolete_node_safe do
+      sign_in
+      visit group_event_path(event.group_ids.first, event.id)
 
+      click_link 'Anmelden'
+
+      fill_in 'Haupt-E-Mail', with: 'foo@testmail.com'
+      fill_in 'Vorname', with: 'testperson'
+      fill_in 'Nachname', with: 'foo'
+
+      all('form .btn-toolbar').first.click_button 'Weiter'
+      expect(page).to have_content('erfolgreich aktualisiert')
+
+      click_button 'Anmelden'
+      expect(page).to have_content('erfolgreich erstellt')
+
+      expect(page).to have_content('testperson foo')
+      expect(page).to have_content('foo@testmail.com')
+    end
+  end
 
   it 'may set and remove contact from event' do
     obsolete_node_safe do

@@ -61,6 +61,12 @@ class EventsController < CrudController
 
   private
 
+  def assign_attributes
+    entry.attributes = permitted_params
+    return if params[:event].nil?
+    entry.assign_contact_details(params[:event][:contact_details])
+  end
+
   def build_entry
     type = model_params && model_params[:type].presence
     type ||= Event.sti_name

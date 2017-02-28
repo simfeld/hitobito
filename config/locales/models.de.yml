@@ -66,6 +66,7 @@ de:
               not_allowed: "'%{mail_name}' darf nicht verwendet werden"
             mail_name_not_allowed:
         person:
+          required: 'mus ausgefüllt werden'
           name_missing: 'Bitte geben Sie einen Namen ein'
           emoji_suspected: 'Bitte keine Sonderzeichen (insbesondere Emoji) verwenden'
           attributes:
@@ -298,6 +299,7 @@ de:
         group_ids: Gruppen
         name: Name
         number: Nummer
+        contact_detail: Kontaktangabe
         motto: Motto
         cost: Kosten
         contact: Kontaktperson
@@ -321,6 +323,7 @@ de:
         participant_count: Anzahl Teilnehmende
         applicant_count: Anzahl Anmeldungen
         applications_cancelable: Abmeldung möglich
+        company_name_required: "'Firmenname' muss mindestens optional sein"
 
       event/answer:
         answer: Antwort

@@ -61,7 +61,7 @@ describe Event::ApplicationMarketController, type: :controller do
       expect(button).to have_css('i.icon-plus')
       path_options = { for_someone_else: true,
                        event_role: { type: course.class.participant_types.first.sti_name } }
-      expect(button[:href]).to eq group_event_participations_edit_person_path(group, course, path_options)
+      expect(button[:href]).to eq edit_group_event_participation_person_path(group, course, people(:top_leader), path_options)
     end
 
     context 'preconditions not fullfilled' do

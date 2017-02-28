@@ -299,8 +299,8 @@ de:
         caption: Abmelden
         confirmation: "Bist Du sicher, dass Du dich von diesem Anlass abmelden möchtest?"
       stepwizard:
-        contact_details: 'Kontaktangaben'
-        registration: 'Anmeldung'
+        contact_details: Kontaktangaben
+        registration: Anmeldung
 
     register:
       register:
@@ -327,6 +327,7 @@ de:
       caption_prioritization: 'Teilnehmende können bei der Anmeldung zwei weitere Kurse als Alternativen angeben'
       caption_requires_approval: 'Der/Die Gruppenleiter/-in wird informiert und muss die Anmeldung bestätigen'
       additional_information: 'Angaben für Anmeldung'
+      contact_details: 'Kontaktangaben für Anmeldung'
       times_are_optional: Uhrzeiten sind optional
       explain_application_questions: Hier kannst du weitere Angaben für die Anmeldung verlangen.
         Gib mögliche Antworten mit Komma getrennt ein oder lass das Feld leer,
@@ -345,6 +346,11 @@ de:
     preconditions: 'Erforderliche Qualifikationen'
     tabs:
       participants: 'Teilnehmende'
+    contact_detail_fields:
+      explanation: Wähle welche Kontaktangaben bei der Anmeldung abgefragt werden sollen.
+      required: 'Obligatorisch'
+      optional: 'Optional'
+      not_shown: 'Nicht anzeigen'
 
   event/applications:
     approved: 'Die Anmeldung wurde freigegeben.'

@@ -115,7 +115,9 @@ Hitobito::Application.routes.draw do
 
           resources :attachments, only: [:create, :destroy]
 
-          get 'participations/edit_person' => 'participations#edit_person'
+          namespace :participation do
+            resources :people, only: [:edit, :update]
+          end
 
           resources :participations do
             get 'print', on: :member
