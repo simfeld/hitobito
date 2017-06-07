@@ -7,23 +7,27 @@
 
 require 'spec_helper'
 
-describe Person::QualificationFilter do
+describe Person::Filter::Qualification do
 
   let(:user) { people(:top_leader) }
   let(:group) { groups(:top_layer) }
-  let(:kind) { nil }
+  let(:range) { nil }
   let(:validity) { 'all' }
   let(:qualification_kind_ids) { [] }
 
   let(:list_filter) do
-    Person::QualificationFilter.new(group,
-                                    user,
-                                    kind: kind,
-                                    qualification_kind_id: qualification_kind_ids,
-                                    validity: validity)
+    Person::Filter::List.new(group,
+                             user,
+                             range: range,
+                             filters: {
+                               qualification: {
+                                 qualification_kind_ids: qualification_kind_ids,
+                                 validity: validity
+                               }
+                             })
   end
 
-  let(:entries) { list_filter.filter_entries }
+  let(:entries) { list_filter.entries }
 
   let(:bl_leader) { create_person(Group::BottomLayer::Leader, :bottom_layer_one, 'reactivateable', :sl, :gl_leader) }
 
@@ -46,10 +50,10 @@ describe Person::QualificationFilter do
     qualification_kinds.each do |key|
       kind = qualification_kinds(key)
       start = case validity
-      when 'active' then Date.today
-      when 'reactivateable' then Date.today - kind.validity.years - 1.year
-      else Date.today - 20.years
-      end
+              when 'active' then Date.today
+              when 'reactivateable' then Date.today - kind.validity.years - 1.year
+              else Date.today - 20.years
+              end
       Fabricate(:qualification, person: person, qualification_kind: kind, start_at: start)
     end
     person
@@ -66,7 +70,7 @@ describe Person::QualificationFilter do
   end
 
   context 'kind deep' do
-    let(:kind) { 'deep' }
+    let(:range) { 'deep' }
 
     context 'no qualification kinds' do
       it 'loads only entries on group' do
@@ -89,7 +93,7 @@ describe Person::QualificationFilter do
   end
 
   context 'kind layer' do
-    let(:kind) { 'layer' }
+    let(:range) { 'layer' }
 
     context 'with qualification kinds' do
       let(:qualification_kind_ids) { qualification_kinds(:sl, :gl_leader).collect(&:id) }
@@ -106,7 +110,7 @@ describe Person::QualificationFilter do
 
   context 'in bottom layer' do
     let(:user) { bl_leader }
-    let(:kind) { 'layer' }
+    let(:range) { 'layer' }
     let(:group) { groups(:bottom_layer_one) }
     let(:qualification_kind_ids) { qualification_kinds(:sl, :gl_leader).collect(&:id) }
 
