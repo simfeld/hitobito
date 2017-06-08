@@ -1,5 +1,9 @@
 # Hitobito Changelog
 
+## Version 1.99
+
+*   Alle Personenfilter sind zusammengefasst und lassen sich abspeichern.
+
 ## Version 1.15
 
 *   Neue Rolle "Helfer/-in" für Anlässe.
