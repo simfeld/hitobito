@@ -6,20 +6,30 @@
 #  https://github.com/hitobito/hitobito.
 
 Airbrake.configure do |config|
-  # if no host is given, use airbrake only in test mode
-  config.test_mode   = ENV['RAILS_AIRBRAKE_HOST'].blank?
+  # if no host is given, ignore all environments
+  config.environment = Rails.env
+  config.ignore_environments = [:development, :test]
+  config.ignore_environments << :production if ENV['RAILS_AIRBRAKE_HOST'].blank?
 
-  config.api_key     = ENV['RAILS_AIRBRAKE_API_KEY']
-  config.host        = ENV['RAILS_AIRBRAKE_HOST']
-  config.port        = (ENV['RAILS_AIRBRAKE_PORT'] || 443).to_i
-  config.secure      = config.port == 443
-  config.ignore         << ActionController::MethodNotAllowed
-  config.ignore         << ActionController::RoutingError
-  config.ignore         << ActionController::UnknownHttpMethod
+  config.project_id     = 1 # required, but any positive integer works
+  config.project_key    = ENV['RAILS_AIRBRAKE_API_KEY']
+  config.host           = ENV['RAILS_AIRBRAKE_HOST']
+  config.port           = (ENV['RAILS_AIRBRAKE_PORT'] || 443).to_i
+
   config.params_filters << 'RAILS_DB_PASSWORD'
   config.params_filters << 'RAILS_MAIL_RETRIEVER_PASSWORD'
   config.params_filters << 'RAILS_AIRBRAKE_API_KEY'
   config.params_filters << 'RAILS_SECRET_TOKEN'
   config.params_filters << 'RAILS_MAIL_RETRIEVER_CONFIG'
   config.params_filters << 'RAILS_MAIL_DELIVERY_CONFIG'
+
+  ignored_exceptions = %w(ActionController::MethodNotAllowed
+                        ActionController::RoutingError
+                        ActionController::UnknownHttpMethod)
+
+  Airbrake.add_filter do |notice|
+    if (notice[:errors].map { |e| e[:type] } & ignored_exceptions).present?
+      notice.ignore!
+    end
+  end
 end

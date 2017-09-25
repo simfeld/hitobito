@@ -11,38 +11,39 @@ gem 'rails', '4.2.8'
 
 gem 'activerecord-session_store'
 gem 'acts-as-taggable-on', '~> 3.5.0'
-gem 'airbrake', '< 5.0' # requires newer errbit
+gem 'airbrake'
 gem 'axlsx', '2.0.1'
-gem 'awesome_nested_set', '< 3.1.0' # requires ruby 2.0
+gem 'awesome_nested_set'
 gem 'bcrypt-ruby'
-gem 'cancancan', '< 1.13.0' # requires ruby 2.0
-gem 'carrierwave', '< 0.11.1' # uses 2.0 for testing (no explicit requirement, yet)
+gem 'cancancan'
+gem 'carrierwave'
 gem 'cmess'
 gem 'country_select'
 gem 'daemons'
 gem 'dalli'
 gem 'delayed_job_active_record'
-gem 'devise', '< 4.0.0' # requires ruby 2.1
+gem 'devise'
 gem 'draper'
-gem 'faker', '< 1.6.4' # uses 2.0 for testing (no explicit requirement, yet)
+gem 'faker'
 gem 'globalize'
 gem 'haml'
 gem 'http_accept_language'
 gem 'magiclabs-userstamp', require: 'userstamp'
-gem 'mime-types', '~> 2.6.2' # newer requires ruby 2.0
+gem 'mailgun'
+gem 'mime-types'
 gem 'mini_magick'
-gem 'mysql2', '0.3.15' # 0.3.16 fails sphinx specs on jenkins
+gem 'mysql2', '0.4.9'
 gem 'nested_form'
 gem 'oat'
 gem 'paper_trail'
-gem 'paranoia', '< 2.1.2' # uses 2.0 for testing (no explicit requirement, yet)
+gem 'paranoia'
 gem 'customized_piwik_analytics', '~> 1.0.0'
-gem 'prawn', '< 2.0' # 2.0 requires ruby 2.0
+gem 'prawn'
 gem 'prawn-table'
 gem 'protective'
 gem 'rack'
 gem 'rails_autolink'
-gem 'config', '< 1.1.0' # requires ruby 2
+gem 'config'
 gem 'rails-i18n'
 gem 'seed-fu'
 gem 'simpleidn'
@@ -74,9 +75,9 @@ gem 'uglifier'
 # if these are ever in your way, you can remove these lines.
 # they mostly serve as a version-restriction
 group :dependencies do
-  gem 'nokogiri', '< 1.7.0' # requires ruby 2.1
-  gem 'addressable', '< 2.5' # requires ruby 2.0
-  gem 'sort_alphabetical', '< 1.1.0' # requires ruby 2.0
+  gem 'nokogiri'
+  gem 'addressable'
+  gem 'sort_alphabetical'
 end
 
 group :development, :test do
@@ -84,9 +85,8 @@ group :development, :test do
   gem 'rspec-rails'
   gem 'codez-tarantula', require: 'tarantula-rails3'
   gem 'pry-rails'
-  gem 'pry-debugger', platforms: :ruby_19
   gem 'pry-doc'
-  # gem 'pry-byebug', platforms: [:ruby_20, :ruby_21]
+  gem 'pry-byebug'
 end
 
 group :development do
@@ -126,7 +126,7 @@ group :metrics do
   gem 'brakeman'
   gem 'ci_reporter_rspec'
   gem 'rails-erd'
-  gem 'rubocop', '< 0.42' # require ruby 2.0
+  gem 'rubocop'
   gem 'rubocop-checkstyle_formatter'
   gem 'ruby-prof'
   gem 'simplecov-rcov'
