@@ -328,11 +328,13 @@ ActiveRecord::Schema.define(version: 20180209090300) do
     t.datetime "locked_at"
     t.string   "authentication_token"
     t.boolean  "show_global_label_formats",              default: true,  null: false
+    t.string   "household_key"
   end
 
   add_index "people", ["authentication_token"], name: "index_people_on_authentication_token"
   add_index "people", ["email"], name: "index_people_on_email", unique: true
   add_index "people", ["reset_password_token"], name: "index_people_on_reset_password_token", unique: true
+  add_index "people", ["household_key"], name: "index_people_on_household_key"
 
   create_table "people_filters", force: :cascade do |t|
     t.string  "name",       null: false
