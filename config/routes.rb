@@ -58,7 +58,9 @@ Hitobito::Application.routes.draw do
           post 'tags' => 'tags#create'
           delete 'tags' => 'tags#destroy'
           get 'tags/query' => 'tags#query'
+          get 'households' => 'households#new'
         end
+
       end
 
       resources :roles, except: [:index, :show] do
