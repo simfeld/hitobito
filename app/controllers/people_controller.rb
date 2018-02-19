@@ -176,7 +176,8 @@ class PeopleController < CrudController
 
   def render_tabular_entries(format, entries)
     full = params[:details].present? && index_full_ability?
-    render_tabular(format, prepare_tabular_entries(entries, full), full)
+    preloaded_entries = prepare_tabular_entries(entries, full)
+    render_tabular(format, preloaded_entries, full)
   end
 
   def prepare_tabular_entries(entries, full)
@@ -194,7 +195,8 @@ class PeopleController < CrudController
   end
 
   def render_tabular(format, entries, full)
-    exporter = full ? Export::Tabular::People::PeopleFull : Export::Tabular::People::PeopleAddress
+    exporter = Export::Tabular::People::Households if params[:household]
+    exporter ||= full ? Export::Tabular::People::PeopleFull : Export::Tabular::People::PeopleAddress
     send_data exporter.export(format, entries), type: format
   end
 
