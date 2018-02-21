@@ -176,7 +176,7 @@ class PeopleController < CrudController
 
   def render_tabular_entries(format, entries)
     full = params[:details].present? && index_full_ability?
-    preloaded_entries = prepare_tabular_entries(entries, full)
+    preloaded_entries = params[:household] ? entries : prepare_tabular_entries(entries, full)
     render_tabular(format, preloaded_entries, full)
   end
 
