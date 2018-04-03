@@ -83,14 +83,14 @@ class PersonDecorator < ApplicationDecorator
 
   # returns roles grouped by their group
   def roles_grouped(subset = roles)
-    subset.each_with_object(Hash.new { |h, k| h[k] = [] }) do |role, memo|
+    grouped_roles = subset.each_with_object(Hash.new { |h, k| h[k] = [] }) do |role, memo|
       memo[role.group] << role
     end
   end
   
   # returns roles grouped by their layer
   def roles_grouped_by_layer
-    roles.each_with_object(Hash.new { |h, k| h[k] = [] }) do |role, memo|        
+    grouped_roles = roles.each_with_object(Hash.new { |h, k| h[k] = [] }) do |role, memo|        
       memo[role.group.layer_group] << role
     end
   end
