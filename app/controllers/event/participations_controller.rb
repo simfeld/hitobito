@@ -106,8 +106,9 @@ class Event::ParticipationsController < CrudController
   end
 
   def list_entries
-    records = event_participation_filter.list_entries.page(params[:page])
-    @counts = event_participation_filter.counts
+    filter = event_participation_filter
+    records = filter.list_entries.page(params[:page])
+    @counts = filter.counts
 
     records = records.reorder(sort_expression) if params[:sort] && sortable?(params[:sort])
     Person::PreloadPublicAccounts.for(records.collect(&:person))
