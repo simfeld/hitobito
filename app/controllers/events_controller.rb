@@ -148,7 +148,9 @@ class EventsController < CrudController
   end
 
   def for_typeahead(entries)
-    entries.map do |entry|
+    entries.reject {|entry| cannot?(:update, entry)}
+    .first(10)
+    .map do |entry|
       role_types = entry.role_types.map { |type| { label: type.label, name: type.name } }
       { id: entry.id, label: entry.name, types: role_types }
     end
@@ -210,7 +212,9 @@ class EventsController < CrudController
   end
 
   def event_filter
-    if request.format.json?
+    if request.params[:action] == 'typeahead'
+      Event::TypeaheadFilter.new(params)
+    elsif request.format.json?
       Event::ApiFilter.new(group, params, year)
     else
       expression = sort_expression if sorting?
