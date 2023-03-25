@@ -1,4 +1,4 @@
 class Webhook < ApplicationRecord
   validates :target_url
-  vallidates :type
+  vallidates :webhook_type
 end
