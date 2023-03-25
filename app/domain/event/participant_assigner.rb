@@ -32,6 +32,10 @@ class Event::ParticipantAssigner
       set_active(true)
       remove_from_waiting_list if application&.waiting_list?
       create_participant_role
+      hooks = Webhook.where(webhook_type: 'participation_assigend')
+      hooks.each do |hook|
+        WebhookJob.new(hook, { event_id: event.id, executor_id: user.id, subject_id: participation.person_id }).enqueue!
+      end
       event.refresh_participant_counts!
     end
     event.reload
