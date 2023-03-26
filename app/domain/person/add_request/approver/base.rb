@@ -54,8 +54,13 @@ module Person::AddRequest::Approver
 
     def trigger_hooks
       hooks = Webhook.where(webhook_type: 'add_request_approved')
+      data = {
+        group_id: request.person_layer.id,
+        approver_id: request.requester.id,
+        subject_id: request.person.id,
+      }
       hooks.each do |hook|
-        WebhookJob.new(hook, { group_id: request.person_layer.id, approver_id: request.requester.id, subject_id: request.person.id }).enqueue!
+        WebhookJob.new(hook, data).enqueue!
       end
     end
 

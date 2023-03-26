@@ -7,6 +7,12 @@
 
 class WebhookJob < BaseJob
 
+  PERSON_FIELDS = %i(id pbs_number first_name last_name nickname address town zip_code country
+                      primary_group_id).freeze
+  GROUP_FIELDS = %i(id parent_id type name).freeze
+  EVENT_FIELDS = %i(id location).freeze
+  TRANSLATIONS_FIELDS = %i(locale name description).freeze
+
   self.parameters = [:webhook_id, :data]
 
   def initialize(webhook, data)
@@ -28,7 +34,11 @@ class WebhookJob < BaseJob
     group = Group.find_by!(id: @data[:group_id])
     requester = Person.find_by!(id: @data[:requester_id])
     subject = Person.find_by!(id: @data[:subject_id])
-    payload = { group: group.attributes, requester: requester.attributes, subject: subject.attributes }
+    payload = {
+      group: serialize(group),
+      requester: serialize(requester),
+      subject: serialize(subject),
+    }
     send(payload)
   end
 
@@ -36,7 +46,11 @@ class WebhookJob < BaseJob
     group = Group.find_by!(id: @data[:group_id])
     approver = Person.find_by!(id: @data[:approver_id])
     subject = Person.find_by!(id: @data[:subject_id])
-    payload = { group: group.attributes, approver: approver.attributes, subject: subject.attributes }
+    payload = {
+      group: serialize(group),
+      approver: serialize(approver),
+      subject: serialize(subject),
+    }
     send(payload)
   end
 
@@ -44,8 +58,24 @@ class WebhookJob < BaseJob
     event = Event.find_by!(id: @data[:event_id])
     executor = Person.find_by!(id: @data[:executor_id])
     subject = Person.find_by!(id: @data[:subject_id])
-    payload = { event: event.attributes, translations: event.translations, executor: executor.attributes, subject: subject.attributes }
+    payload = {
+      event: serialize(event),
+      executor: serialize(executor),
+      subject: serialize(subject),
+    }
     send(payload)
+  end
+
+  def serialize(entity)
+    case entity
+    when Event::Course, Event::Camp then
+      entity.as_json(only: EVENT_FIELDS, include: { translations: { only: TRANSLATIONS_FIELDS } })
+    when Person then
+      entity.as_json(only: PERSON_FIELDS)
+    when Group then
+      entity.as_json(only: GROUP_FIELDS)
+    else raise(ArgumentError, "Unknown entity class #{entity.class}")
+    end
   end
 
   def webhook
@@ -61,6 +91,24 @@ class WebhookJob < BaseJob
     request = Net::HTTP::Post.new(uri.request_uri, headers)
     request.body = payload.to_json
     http.request(request)
+  end
+
+  def set_translations(item, key)
+    item.except(key, 'translations')
+        .merge(empty_translations_hash(key))
+        .merge(translations_to_hash(item['translations'], key))
+  end
+
+  def empty_translations_hash(key)
+    locales.map { |loc| ["#{key}_#{loc}", nil] }.to_h
+  end
+
+  def translations_to_hash(translations, key)
+    translations.map { |t| ["#{key}_#{t['locale']}", t['label']] }.to_h
+  end
+
+  def locales
+    @locales ||= Settings.application.languages.keys
   end
 
 end
