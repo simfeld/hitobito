@@ -28,34 +28,37 @@ class WebhookJob < BaseJob
     group = Group.find_by!(id: @data[:group_id])
     requester = Person.find_by!(id: @data[:requester_id])
     subject = Person.find_by!(id: @data[:subject_id])
-    send
+    payload = { group: group.attributes, requester: requester.attributes, subject: subject.attributes }
+    send(payload)
   end
 
   def perform_add_request_approved
     group = Group.find_by!(id: @data[:group_id])
     approver = Person.find_by!(id: @data[:approver_id])
     subject = Person.find_by!(id: @data[:subject_id])
-    send
+    payload = { group: group.attributes, approver: approver.attributes, subject: subject.attributes }
+    send(payload)
   end
 
   def perform_participation_assigned
     event = Event.find_by!(id: @data[:event_id])
     executor = Person.find_by!(id: @data[:executor_id])
     subject = Person.find_by!(id: @data[:subject_id])
-    send
+    payload = { event: event.attributes, executor: executor.attributes, subject: subject.attributes }
+    send(payload)
   end
 
   def webhook
     @webhook ||= Webhook.find_by(id: @webhook_id)
   end
 
-  def send
+  def send(payload)
     uri = URI.parse(webhook.target_url)
 
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
     request = Net::HTTP::Post.new(uri.request_uri)
-    request.body = @data.to_json
+    request.body = payload.to_json
     http.request(request)
   end
 
