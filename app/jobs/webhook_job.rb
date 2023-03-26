@@ -44,7 +44,7 @@ class WebhookJob < BaseJob
     event = Event.find_by!(id: @data[:event_id])
     executor = Person.find_by!(id: @data[:executor_id])
     subject = Person.find_by!(id: @data[:subject_id])
-    payload = { event: event.attributes, executor: executor.attributes, subject: subject.attributes }
+    payload = { event: event.attributes, translations: event.translations, executor: executor.attributes, subject: subject.attributes }
     send(payload)
   end
 
