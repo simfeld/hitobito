@@ -17,28 +17,28 @@ class WebhookJob < BaseJob
 
   def perform
     case webhook.webhook_type
-    when 'group_request_created' then perform_group_request_created
-    when 'group_request_approved' then perform_group_request_approved
-    when 'participation_assigend' then perform_participation_assigend
+    when 'add_request_created' then perform_add_request_created
+    when 'add_request_approved' then perform_add_request_approved
+    when 'participation_assigend' then perform_participation_assigned
     else raise(ArgumentError, "Unknown webhook type #{webhook.webhook_type}")
     end
   end
 
-  def perform_group_request_created
+  def perform_add_request_created
     group = Group.find_by!(id: @data[:group_id])
-    executor = Person.find_by!(id: @data[:executor_id])
+    requester = Person.find_by!(id: @data[:requester_id])
     subject = Person.find_by!(id: @data[:subject_id])
     send
   end
 
-  def perform_group_request_approved
+  def perform_add_request_approved
     group = Group.find_by!(id: @data[:group_id])
-    executor = Person.find_by!(id: @data[:executor_id])
+    approver = Person.find_by!(id: @data[:approver_id])
     subject = Person.find_by!(id: @data[:subject_id])
     send
   end
 
-  def perform_participation_assigend
+  def perform_participation_assigned
     event = Event.find_by!(id: @data[:event_id])
     executor = Person.find_by!(id: @data[:executor_id])
     subject = Person.find_by!(id: @data[:subject_id])

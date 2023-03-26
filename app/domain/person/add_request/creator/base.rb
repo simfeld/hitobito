@@ -33,7 +33,15 @@ module Person::AddRequest::Creator
     def create_request
       success = required? && request.save
       Person::SendAddRequestJob.new(request).enqueue! if success
+      trigger_hooks if success
       success
+    end
+
+    def trigger_hooks
+      hooks = Webhook.where(webhook_type: 'add_request_created')
+      hooks.each do |hook|
+        WebhookJob.new(hook, { group_id: person_layer.id, requester_id: requester.id, subject_id: person.id }).enqueue!
+      end
     end
 
     def requester

@@ -20,6 +20,7 @@ module Person::AddRequest::Approver
         success = entity.save
         if success
           send_approval if email.present?
+          trigger_hooks
           request.destroy
         end
         success
@@ -49,6 +50,13 @@ module Person::AddRequest::Approver
       Person::AddRequestMailer.
         approved(request.person, request.body, request.requester, user).
         deliver_later
+    end
+
+    def trigger_hooks
+      hooks = Webhook.where(webhook_type: 'add_request_approved')
+      hooks.each do |hook|
+        WebhookJob.new(hook, { group_id: request.person_layer.id, approver_id: request.requester.id, subject_id: request.person.id }).enqueue!
+      end
     end
 
     def send_rejection
