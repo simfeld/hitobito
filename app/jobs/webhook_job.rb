@@ -56,7 +56,7 @@ class WebhookJob < BaseJob
     uri = URI.parse(webhook.target_url)
 
     http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = true
+    http.use_ssl = true unless uri.scheme == 'http'
     request = Net::HTTP::Post.new(uri.request_uri)
     request.body = payload.to_json
     http.request(request)
