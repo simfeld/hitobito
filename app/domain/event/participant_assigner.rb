@@ -39,7 +39,7 @@ class Event::ParticipantAssigner
   end
 
   def trigger_hooks
-    hooks = Webhook.where(webhook_type: 'participation_assigend')
+    hooks = Webhook.where(webhook_type: :participation_assigend)
     data = { event_id: event.id, executor_id: user.id, subject_id: participation.person_id }
     hooks.each do |hook|
       WebhookJob.new(hook, data).enqueue!

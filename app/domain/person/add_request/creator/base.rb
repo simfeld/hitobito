@@ -38,7 +38,7 @@ module Person::AddRequest::Creator
     end
 
     def trigger_hooks
-      hooks = Webhook.where(webhook_type: 'add_request_created')
+      hooks = Webhook.where(webhook_type: :add_request_created)
       data = { group_id: person_layer.id, requester_id: requester.id, subject_id: person.id }
       hooks.each do |hook|
         WebhookJob.new(hook, data).enqueue!

@@ -53,7 +53,7 @@ module Person::AddRequest::Approver
     end
 
     def trigger_hooks
-      hooks = Webhook.where(webhook_type: 'add_request_approved')
+      hooks = Webhook.where(webhook_type: :add_request_approved)
       data = {
         group_id: request.person_layer.id,
         approver_id: request.requester.id,

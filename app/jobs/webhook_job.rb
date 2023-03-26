@@ -22,10 +22,10 @@ class WebhookJob < BaseJob
   end
 
   def perform
-    case webhook.webhook_type
-    when 'add_request_created' then perform_add_request_created
-    when 'add_request_approved' then perform_add_request_approved
-    when 'participation_assigend' then perform_participation_assigned
+    case webhook.webhook_type.to_sym
+    when :add_request_created then perform_add_request_created
+    when :add_request_approved then perform_add_request_approved
+    when :participation_assigend then perform_participation_assigned
     else raise(ArgumentError, "Unknown webhook type #{webhook.webhook_type}")
     end
   end
