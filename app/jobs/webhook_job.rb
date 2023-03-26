@@ -56,11 +56,11 @@ class WebhookJob < BaseJob
 
   def perform_participation_assigned
     event = Event.find_by!(id: @data[:event_id])
-    executor = Person.find_by!(id: @data[:executor_id])
+    executor = @data[:executor_id].nil? ? nil : Person.find_by!(id: @data[:executor_id])
     subject = Person.find_by!(id: @data[:subject_id])
     payload = {
       event: serialize(event),
-      executor: serialize(executor),
+      executor: executor.nil? ? serialize(executor) : nil,
       subject: serialize(subject),
     }
     send(payload)
