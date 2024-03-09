@@ -143,6 +143,9 @@ class Group < ActiveRecord::Base # rubocop:disable Metrics/ClassLength
   has_many :service_tokens,
            foreign_key: :layer_group_id,
            dependent: :destroy
+  has_many :webhooks,
+           foreign_key: :layer_group_id,
+           dependent: :destroy
 
   ### VALIDATIONS
 

@@ -3,5 +3,4 @@ class Webhook < ActiveRecord::Base
 
   validates :target_url, presence: true
   validates :webhook_type, presence: true
-  validates :group, presence: true
 end
