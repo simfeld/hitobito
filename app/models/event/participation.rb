@@ -60,11 +60,11 @@ class Event::Participation < ActiveRecord::Base
 
   before_validation :init, on: :create
   before_validation :set_self_in_nested
+  before_create :reset_person_minimized_at
 
   # There may be old participations without roles, so they must
   # update the count directly.
   after_destroy :update_participant_count
-  after_update :send_confirmation, if: :saved_change_to_active?
 
   ### CLASS METHODS
 
@@ -146,6 +146,10 @@ class Event::Participation < ActiveRecord::Base
     answers.each { |e| e.participation = self unless e.frozen? }
   end
 
+  def reset_person_minimized_at
+    person.minimized_at = nil
+  end
+
   def init
     init_answers
     init_application
@@ -158,11 +162,5 @@ class Event::Participation < ActiveRecord::Base
 
   def directly_to_waiting_list?(event)
     !event.places_available? && event.waiting_list_available?
-  end
-
-  def send_confirmation
-    return unless applying_participant?
-
-    Event::ParticipationConfirmationJob.new(self, send_approval: false).enqueue!
   end
 end

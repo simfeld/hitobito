@@ -14,7 +14,8 @@ module Role::Types
   Permissions = [:admin,
                  :layer_and_below_full, :layer_and_below_read, :layer_full, :layer_read,
                  :group_and_below_full, :group_and_below_read, :group_full, :group_read,
-                 :contact_data, :approve_applications, :finance, :impersonation]
+                 :contact_data, :approve_applications, :finance, :impersonation,
+                 :see_invisible_from_above]
 
   # If a role contains the first permission, the second one is automatically active as well
   PermissionImplications = { layer_and_below_full: :layer_and_below_read,
@@ -22,7 +23,7 @@ module Role::Types
                              group_and_below_full: :group_and_below_read,
                              group_full: :group_read }
 
-  Kinds = [:member, :passive, :external]
+  Kinds = [:member, :passive, :external, :future]
 
   # All possible permissions with writing permission
   WRITING_PERMISSIONS = [
@@ -31,9 +32,9 @@ module Role::Types
     :group_and_below_full,
     :group_full,
     :admin,
+    :see_invisible_from_above,
     :finance
-  ].freeze
-
+  ]
 
   # rubocop:enable Naming/ConstantName,Style/MutableConstant
 

@@ -33,9 +33,11 @@ module Messages
     end
 
     def provider_config
-      group.settings(:text_message_provider).tap do |s|
-        s.originator = group.name if s.originator.blank?
-      end
+      { provider: group.text_message_provider,
+        originator: group.text_message_originator || group.name,
+        username: group.text_message_username,
+        password: group.text_message_password
+      }.with_indifferent_access
     end
 
     def group

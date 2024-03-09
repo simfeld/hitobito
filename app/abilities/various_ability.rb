@@ -22,31 +22,42 @@ class VariousAbility < AbilityDsl::Base
   end
 
   on(LabelFormat) do
-    class_side(:index).everybody
+    class_side(:index).everybody_unless_only_basic_permissions_roles
     class_side(:manage_global).if_admin
     permission(:admin).may(:manage).all
-    permission(:any).may(:create, :update, :destroy, :read).own
+    permission(:any).may(:create, :update, :destroy, :show).own_unless_only_basic_permissions_roles
   end
 
-  if Group.course_types.present?
-    on(Event::Kind) do
-      class_side(:index).if_admin
-      permission(:admin).may(:manage).all
-    end
-
-    on(QualificationKind) do
-      class_side(:index).if_admin
-      permission(:admin).may(:manage).all
-    end
-
-    on(Event::KindCategory) do
-      class_side(:index).if_admin
-      permission(:admin).may(:manage).all
-    end
+  on(Event::Kind) do
+    class_side(:index).if_admin_and_course_types_present
+    permission(:admin).may(:manage).if_course_types_present
   end
 
-  def own
+  on(QualificationKind) do
+    class_side(:index).if_admin_and_course_types_present
+    permission(:admin).may(:manage).if_course_types_present
+  end
+
+  on(Event::KindCategory) do
+    class_side(:index).if_admin_and_course_types_present
+    permission(:admin).may(:manage).if_course_types_present
+  end
+
+  def own_unless_only_basic_permissions_roles
+    return false if user.roles.all?(&:basic_permissions_only)
+
     subject.person_id == user.id
   end
 
+  def everybody_unless_only_basic_permissions_roles
+    !user.roles.all?(&:basic_permissions_only)
+  end
+
+  def if_admin_and_course_types_present
+    if_admin && if_course_types_present
+  end
+
+  def if_course_types_present
+    Group.course_types.present?
+  end
 end

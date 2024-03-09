@@ -82,7 +82,15 @@ class PersonDecorator < ApplicationDecorator
   end
 
   def roles
-    super.without_archived
+    super.reject(&:archived?)
+  end
+
+  def current_roles_grouped
+    @current_roles_grouped ||= roles_grouped(scope: person.roles.without_future)
+  end
+
+  def future_roles_grouped
+    @future_roles_grouped ||= roles_grouped(scope: person.roles.future)
   end
 
   def roles_list(group = nil, multiple_groups = false)
@@ -100,13 +108,6 @@ class PersonDecorator < ApplicationDecorator
       filtered_functions(roles.to_a, :group).select { |r| group.subgroup_ids.include? r.group_id }
     else
       filtered_functions(roles.to_a, :group, group)
-    end
-  end
-
-  # returns roles grouped by their group
-  def roles_grouped
-    roles.each_with_object(Hash.new { |h, k| h[k] = [] }) do |role, memo|
-      memo[role.group] << role
     end
   end
 
@@ -132,7 +133,7 @@ class PersonDecorator < ApplicationDecorator
 
   def last_role_new_link(group)
     path = h.new_group_role_path(restored_group(group), role_id: last_role.id)
-    role_popover_link(path, "role_#{last_role.id}")
+    role_popover_link(path, "role_#{last_role.id}", 'popover_toggler ps-1')
   end
 
   def last_role
@@ -141,6 +142,13 @@ class PersonDecorator < ApplicationDecorator
 
   def restored_group(default_group)
     last_role.group.deleted_at? ? default_group : last_role.group
+  end
+
+  # returns roles grouped by their group
+  def roles_grouped(scope: roles)
+    scope.each_with_object(Hash.new { |h, k| h[k] = [] }) do |role, memo|
+      memo[role.group] << role
+    end
   end
 
   private
@@ -190,11 +198,11 @@ class PersonDecorator < ApplicationDecorator
 
   def popover_edit_link(function)
     path = h.edit_group_role_path(function.group, function)
-    role_popover_link(path)
+    role_popover_link(path, nil, "ps-1")
   end
 
-  def role_popover_link(path, html_id = nil)
-    content_tag(:span, style: 'padding-left: 10px', id: html_id) do
+  def role_popover_link(path, html_id = nil, html_classes = "")
+    content_tag(:span, class: html_classes, id: html_id) do
       h.link_to(h.icon(:edit),
                 path,
                 title: h.t('global.link.edit'),

@@ -17,19 +17,20 @@ class Group::PrivacyPolicyFinder
   end
 
   def acceptance_needed?
-    !already_accepted? && groups.any?
+    groups.any? && !already_accepted?
   end
 
   def groups
-    @groups ||= @group.layer_hierarchy.select do |g|
+    @groups ||= @group.layer_hierarchy(includes: [:privacy_policy_attachment]).select do |g|
       g.privacy_policy.present?
     end
   end
 
   private
-  
-  def already_accepted?
-    @person.privacy_policy_accepted?
-  end
 
+  def already_accepted?
+    return false unless @person.is_a?(ActiveRecord::Base)
+
+    @person.privacy_policy_accepted? && @person.changes.keys.exclude?('privacy_policy_accepted_at')
+  end
 end

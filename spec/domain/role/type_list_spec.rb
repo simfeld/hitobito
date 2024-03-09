@@ -16,11 +16,11 @@ describe Role::TypeList do
        { 'Top Layer' => [Group::TopLayer::TopAdmin],
          'Top Group' => [Group::TopGroup::Leader, Group::TopGroup::LocalGuide,
                          Group::TopGroup::Secretary, Group::TopGroup::LocalSecretary,
-                         Group::TopGroup::Member] }],
+                         Group::TopGroup::Member, Group::TopGroup::InvisiblePeopleManager] }],
 
       ['Bottom Layer',
        { 'Bottom Layer' => [Group::BottomLayer::Leader, Group::BottomLayer::LocalGuide,
-                            Group::BottomLayer::Member],
+                            Group::BottomLayer::Member, Group::BottomLayer::BasicPermissionsOnly],
          'Bottom Group' => [Group::BottomGroup::Leader, Group::BottomGroup::Member] }],
 
       ['Global',
@@ -35,7 +35,7 @@ describe Role::TypeList do
     expect(list.to_enum.to_a).to eq([
       ['Bottom Layer',
        { 'Bottom Layer' => [Group::BottomLayer::Leader, Group::BottomLayer::LocalGuide,
-                            Group::BottomLayer::Member],
+                            Group::BottomLayer::Member, Group::BottomLayer::BasicPermissionsOnly],
          'Bottom Group' => [Group::BottomGroup::Leader, Group::BottomGroup::Member],
          'Global Group' => [Group::GlobalGroup::Leader, Group::GlobalGroup::Member] }],
 
@@ -50,7 +50,7 @@ describe Role::TypeList do
       ['Top Group',
        { 'Top Group' => [Group::TopGroup::Leader, Group::TopGroup::LocalGuide,
                          Group::TopGroup::Secretary, Group::TopGroup::LocalSecretary,
-                         Group::TopGroup::Member],
+                         Group::TopGroup::Member, Group::TopGroup::InvisiblePeopleManager],
          'Global Group' => [Group::GlobalGroup::Leader, Group::GlobalGroup::Member] }],
       ['Global',
        { 'Global' => [Role::External] }],
@@ -75,9 +75,10 @@ describe Role::TypeList do
       list = Role::TypeList.new(Group::TopLayer)
       expect(list.flatten.map(&:name)).to eq(%w(Group::TopLayer::TopAdmin Group::TopGroup::Leader
         Group::TopGroup::LocalGuide Group::TopGroup::Secretary Group::TopGroup::LocalSecretary
-        Group::TopGroup::Member Group::BottomLayer::Leader Group::BottomLayer::LocalGuide
-        Group::BottomLayer::Member Group::BottomGroup::Leader Group::BottomGroup::Member
-        Group::GlobalGroup::Leader Group::GlobalGroup::Member Role::External))
+        Group::TopGroup::Member Group::TopGroup::InvisiblePeopleManager Group::BottomLayer::Leader
+        Group::BottomLayer::LocalGuide Group::BottomLayer::Member Group::BottomLayer::BasicPermissionsOnly
+        Group::BottomGroup::Leader Group::BottomGroup::Member Group::GlobalGroup::Leader
+        Group::GlobalGroup::Member Role::External))
     end
 
     it 'with block' do
@@ -89,9 +90,11 @@ describe Role::TypeList do
         { layer: 'Top Layer', group: 'Top Group', role: Group::TopGroup::Secretary },
         { layer: 'Top Layer', group: 'Top Group', role: Group::TopGroup::LocalSecretary },
         { layer: 'Top Layer', group: 'Top Group', role: Group::TopGroup::Member },
+        { layer: 'Top Layer', group: 'Top Group', role: Group::TopGroup::InvisiblePeopleManager },
         { layer: 'Bottom Layer', group: 'Bottom Layer', role: Group::BottomLayer::Leader },
         { layer: 'Bottom Layer', group: 'Bottom Layer', role: Group::BottomLayer::LocalGuide },
         { layer: 'Bottom Layer', group: 'Bottom Layer', role: Group::BottomLayer::Member },
+        { layer: 'Bottom Layer', group: 'Bottom Layer', role: Group::BottomLayer::BasicPermissionsOnly },
         { layer: 'Bottom Layer', group: 'Bottom Group', role: Group::BottomGroup::Leader },
         { layer: 'Bottom Layer', group: 'Bottom Group', role: Group::BottomGroup::Member },
         { layer: 'Global', group: 'Global Group', role: Group::GlobalGroup::Leader },

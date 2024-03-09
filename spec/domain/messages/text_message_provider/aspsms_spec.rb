@@ -10,11 +10,12 @@ require 'spec_helper'
 describe Messages::TextMessageProvider::Aspsms do
 
   let(:config) do
-    GroupSetting.new(
-      username: 'goofy',
-      password: 'max42',
-      originator: 'Acme'
-    )
+    {
+      'provider' => 'aspsms',
+      'username' => 'goofy',
+      'password' => 'max42',
+      'originator' => 'Acme'
+    }
   end
   let(:provider) { described_class.new(config: config) }
   let(:success_response) do

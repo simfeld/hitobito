@@ -200,6 +200,12 @@ describe PeopleController do
             expect(@response.body).to eq("top_leader@example.com,#{@tg_member.email}")
           end
 
+          it 'renders email addresses for Outlook' do
+            get :index, params: { group_id: group }, format: :email_outlook
+            expect(@response.media_type).to eq('text/plain')
+            expect(@response.body).to eq("top_leader@example.com;#{@tg_member.email}")
+          end
+
           it 'renders email addresses with additional ones' do
             e1 = Fabricate(:additional_email, contactable: @tg_member, mailings: true)
             Fabricate(:additional_email, contactable: @tg_member, mailings: false)
@@ -634,7 +640,7 @@ describe PeopleController do
         get :show, params: { group_id: group, id: top_leader.id, label_format_id: label_formats(:standard).id }, format: :csv
 
         expect(@response.media_type).to eq('text/csv')
-        expect(@response.body).to match(/^Vorname;Nachname/)
+        expect(@response.body).to match(Regexp.new("^#{Export::Csv::UTF8_BOM}Vorname;Nachname"))
         expect(@response.body).to match(/^Top;Leader/)
       end
 
@@ -701,30 +707,30 @@ describe PeopleController do
         it 'shows active login status for self' do
           get :show, params: { group_id: group.id, id: people(:top_leader).id }
 
-          expect(dom).to have_selector 'dd i.fa.fa-user-check'
-          expect(dom.find('dd i.fa.fa-user-check')['title']).to eq 'Login ist aktiv'
+          expect(dom).to have_selector 'dd i.fas.fa-user-check'
+          expect(dom.find('dd i.fas.fa-user-check')['title']).to eq 'Login ist aktiv'
         end
 
         it 'shows active login status for other person who can be written' do
           get :show, params: { group_id: role.group.id, id: person.id }
 
-          expect(dom).to have_selector 'dd i.fa.fa-user-check'
-          expect(dom.find('dd i.fa.fa-user-check')['title']).to eq 'Login ist aktiv'
+          expect(dom).to have_selector 'dd i.fas.fa-user-check'
+          expect(dom.find('dd i.fas.fa-user-check')['title']).to eq 'Login ist aktiv'
         end
 
         it 'does not show login status for other person who cannot be written' do
           sign_in(person2)
           get :show, params: { group_id: role.group.id, id: person.id }
 
-          expect(dom).not_to have_selector 'dd i.fa.fa-user-check'
+          expect(dom).not_to have_selector 'dd i.fas.fa-user-check'
         end
 
         it 'shows 2fa login status' do
           person.update(two_factor_authentication: :totp)
           get :show, params: { group_id: role.group.id, id: person.id }
 
-          expect(dom).to have_selector 'dd i.fa.fa-user-shield'
-          expect(dom.find('dd i.fa.fa-user-shield')['title']).to eq 'Login mit 2FA ist aktiv'
+          expect(dom).to have_selector 'dd i.fas.fa-user-shield'
+          expect(dom.find('dd i.fas.fa-user-shield')['title']).to eq 'Login mit 2FA ist aktiv'
         end
 
         it 'shows password email sent login status' do
@@ -732,24 +738,24 @@ describe PeopleController do
           person.send_reset_password_instructions
           get :show, params: { group_id: role.group.id, id: person.id }
 
-          expect(dom).to have_selector 'dd i.fa.fa-user-clock'
-          expect(dom.find('dd i.fa.fa-user-clock')['title']).to eq 'Einladung wurde verschickt'
+          expect(dom).to have_selector 'dd i.fas.fa-user-clock'
+          expect(dom.find('dd i.fas.fa-user-clock')['title']).to eq 'Einladung wurde verschickt'
         end
 
         it 'shows active login status when password reset was sent but user already had login' do
           person.send_reset_password_instructions
           get :show, params: { group_id: role.group.id, id: person.id }
 
-          expect(dom).to have_selector 'dd i.fa.fa-user-check'
-          expect(dom.find('dd i.fa.fa-user-check')['title']).to eq 'Login ist aktiv'
+          expect(dom).to have_selector 'dd i.fas.fa-user-check'
+          expect(dom.find('dd i.fas.fa-user-check')['title']).to eq 'Login ist aktiv'
         end
 
         it 'shows "no login" status' do
           person.update(encrypted_password: nil)
           get :show, params: { group_id: role.group.id, id: person.id }
 
-          expect(dom).to have_selector 'dd i.fa.fa-user-slash'
-          expect(dom.find('dd i.fa.fa-user-slash')['title']).to eq 'Kein Login'
+          expect(dom).to have_selector 'dd i.fas.fa-user-slash'
+          expect(dom.find('dd i.fas.fa-user-slash')['title']).to eq 'Kein Login'
         end
       end
     end
@@ -945,7 +951,7 @@ describe PeopleController do
 
       it 'can delete person' do
         delete :destroy, params: { group_id: member.primary_group.id, id: member.id }
-        expect(response.status).to eq(302)
+        expect(response).to redirect_to(group_people_path(member.primary_group_id, returning: true))
       end
 
       it 'deletes person' do
@@ -1206,7 +1212,7 @@ describe PeopleController do
     end
   end
 
-  context 'table_displays'do
+  context 'table_displays' do
     render_views
     let(:dom) { Capybara::Node::Simple.new(response.body) }
     let!(:bottom_member) { people(:bottom_member) }
@@ -1241,7 +1247,7 @@ describe PeopleController do
 
       get :index, params: { group_id: group.id }
       expect(dom).to have_checked_field 'Login'
-      expect(dom.find('table tbody tr i.fa.fa-user-check')['title']).to eq 'Login ist aktiv'
+      expect(dom.find('table tbody tr i.fas.fa-user-check')['title']).to eq 'Login ist aktiv'
     end
 
     it 'GET#index lists extra column without content if permission check fails' do
@@ -1265,6 +1271,83 @@ describe PeopleController do
       get :index, params: { group_id: group, selection: true }, format: :csv
       expect(flash[:notice]).to match(/Export wird im Hintergrund gestartet und nach Fertigstellung heruntergeladen./)
       expect(Delayed::Job.last.payload_object.send(:exporter)).to eq Export::Tabular::People::TableDisplays
+    end
+
+    context 'without show_full permission' do
+      let(:group) { Fabricate(Group::TopGroup.name, parent: groups(:top_group)) }
+      let(:user) { Fabricate(:person) }
+      let!(:role) { Fabricate(Group::TopGroup::Member.name, person: user, group: groups(:top_group)) }
+      let(:other_person) { Fabricate(:person, birthday: Date.new(2003, 03, 03)) }
+      let!(:other_role) { Fabricate(Group::TopGroup::Member.name, person: other_person, group: group) }
+      before { sign_in(user.reload) }
+
+      it 'GET#index lists extra public column' do
+        TableDisplay.register_column(Person, TableDisplays::PublicColumn, :birthday)
+        user.table_display_for(Person).update!(selected: %w(birthday))
+
+        get :index, params: { group_id: group.id }
+        expect(dom).to have_checked_field 'Geburtstag'
+        expect(dom.find('table tbody tr')).to have_content '03.03.2003'
+      end
+
+      it 'GET#index lists extra show_full column, but does not expose data' do
+        TableDisplay.register_column(Person, TableDisplays::ShowFullColumn, :birthday)
+        user.table_display_for(Person).update!(selected: %w(birthday))
+
+        get :index, params: { group_id: group.id }
+        expect(dom).to have_checked_field 'Geburtstag'
+        expect(dom.find('table tbody tr')).not_to have_content '03.03.2003'
+      end
+    end
+  end
+
+  context 'table_displays as configured in the core' do
+    render_views
+    let(:dom) { Capybara::Node::Simple.new(response.body) }
+    let!(:bottom_member) { people(:bottom_member) }
+    let(:group) { Fabricate(Group::TopGroup.name, parent: groups(:top_group)) }
+    let(:user) { Fabricate(:person) }
+    let!(:role) { Fabricate(Group::BottomLayer::Leader.name, person: user, group: groups(:bottom_layer_one)) }
+    let(:other_person) { Fabricate(:person, birthday: Date.new(2003, 03, 03), company_name: 'Puzzle ITC Test') }
+    let!(:other_role) { Fabricate(Group::TopGroup::Member.name, person: other_person, group: group) }
+
+    before { sign_in(user.reload) }
+
+    context 'with show_details permission' do
+      let!(:role2) { Fabricate(Group::TopLayer::TopAdmin.name, person: user, group: groups(:top_layer)) }
+      it 'GET#index lists extra public column' do
+        user.table_display_for(Person).update!(selected: %w(company_name))
+
+        get :index, params: { group_id: group.id }
+        expect(dom).to have_checked_field 'Firmenname'
+        expect(dom.find('table tbody tr')).to have_content 'Puzzle ITC Test'
+      end
+
+      it 'GET#index lists extra show_full column' do
+        user.table_display_for(Person).update!(selected: %w(birthday))
+
+        get :index, params: { group_id: group.id }
+        expect(dom).to have_checked_field 'Geburtstag'
+        expect(dom.find('table tbody tr')).to have_content '03.03.2003'
+      end
+    end
+
+    context 'without show_details permission' do
+      it 'GET#index lists extra public column' do
+        user.table_display_for(Person).update!(selected: %w(company_name))
+
+        get :index, params: { group_id: group.id }
+        expect(dom).to have_checked_field 'Firmenname'
+        expect(dom.find('table tbody tr')).to have_content 'Puzzle ITC Test'
+      end
+
+      it 'GET#index lists extra show_full column, but does not expose data' do
+        user.table_display_for(Person).update!(selected: %w(birthday))
+
+        get :index, params: { group_id: group.id }
+        expect(dom).to have_checked_field 'Geburtstag'
+        expect(dom.find('table tbody tr')).not_to have_content '03.03.2003'
+      end
     end
   end
 

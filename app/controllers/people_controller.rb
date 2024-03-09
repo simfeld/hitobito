@@ -53,13 +53,14 @@ class PeopleController < CrudController
 
   def index # rubocop:disable Metrics/AbcSize we support a lot of formats, hence many code-branches
     respond_to do |format|
-      format.html  { @people = prepare_entries(filter_entries).page(params[:page]) }
-      format.pdf   { render_pdf_in_background(filter_entries, group, "people_#{group.id}") }
-      format.csv   { render_tabular_entries_in_background(:csv) }
-      format.xlsx  { render_tabular_entries_in_background(:xlsx) }
-      format.vcf   { render_vcf(filter_entries.includes(:phone_numbers)) }
-      format.email { render_emails(filter_entries) }
-      format.json  { render_entries_json(filter_entries) }
+      format.html          { @people = prepare_entries(filter_entries).page(params[:page]) }
+      format.pdf           { render_pdf_in_background(filter_entries, group, "people_#{group.id}") }
+      format.csv           { render_tabular_entries_in_background(:csv) }
+      format.xlsx          { render_tabular_entries_in_background(:xlsx) }
+      format.vcf           { render_vcf(filter_entries.includes(:phone_numbers)) }
+      format.email         { render_emails(filter_entries, ',') }
+      format.email_outlook { render_emails(filter_entries, ';') }
+      format.json          { render_entries_json(filter_entries) }
     end
   end
 
@@ -179,11 +180,13 @@ class PeopleController < CrudController
   end
 
   def prepare_entries(entries)
-    if index_full_ability?
-      entries.includes(:additional_emails, :phone_numbers)
-    else
-      entries.preload_public_accounts
-    end
+    entries = if index_full_ability?
+                entries.includes(:additional_emails, :phone_numbers)
+              else
+                entries.preload_public_accounts
+              end
+
+    entries.includes(:picture_attachment)
   end
 
   def render_tabular_entries_in_background(format)
@@ -266,5 +269,11 @@ class PeopleController < CrudController
 
   def group_archived_and_no_filter
     group.archived? && list_filter_args[:filters].nil?
+  end
+
+  def model_scope
+    super.yield_self do |scope|
+      action_name == 'show' ? scope.includes(roles: :group) : scope
+    end
   end
 end

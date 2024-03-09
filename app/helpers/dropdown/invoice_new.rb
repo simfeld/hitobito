@@ -8,7 +8,7 @@
 module Dropdown
   class InvoiceNew < Base
     def initialize(template, people: [], mailing_list: nil, filter: nil, # rubocop:disable Metrics/ParameterLists
-                             group: nil, invoice_items: nil, label: nil)
+                   group: nil, invoice_items: nil, label: nil)
       super(template, label, :plus)
       @people = people
       @group = group
@@ -21,7 +21,8 @@ module Dropdown
     end
 
     def button_or_dropdown
-      if finance_groups.one? && InvoiceItem.all_types.one?
+      if finance_groups.one? && (additional_sub_links.none? ||
+                                 finance_groups.first&.invoice_config&.invalid?)
         single_button
       else
         to_s
@@ -102,7 +103,13 @@ module Dropdown
     end
 
     def finance_groups
-      template.current_user.finance_groups
+      @finance_groups ||= fetch_finance_groups
+    end
+
+    def fetch_finance_groups
+      finance_groups = template.current_user.finance_groups
+      # reload groups to have an AREL collection to make use includes
+      Group.where(id: finance_groups.collect(&:id)).includes(:invoice_config)
     end
 
     def invalid_config_error_msg

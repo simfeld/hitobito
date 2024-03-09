@@ -13,12 +13,25 @@ describe GroupAbility do
   subject { ability }
   let(:ability) { Ability.new(role.person.reload) }
 
+  before do
+    allow(FeatureGate).to receive(:enabled?).and_return(true)
+  end
+
   context 'layer and below full' do
     let(:role) { Fabricate(Group::TopGroup::Leader.name.to_sym, group: groups(:top_group)) }
 
     context 'without specific group' do
       it 'may not create subgroup' do
         is_expected.not_to be_able_to(:create, Group.new)
+      end
+    end
+
+    context 'in own layer' do
+      let(:role) { Fabricate(Group::BottomLayer::Leader.name.to_sym, group: groups(:bottom_layer_one)) }
+      let(:group) { role.group }
+
+      it 'may manually delete people' do
+        is_expected.to be_able_to(:manually_delete_people, group)
       end
     end
 
@@ -52,6 +65,10 @@ describe GroupAbility do
 
       it 'may show statistics' do
         is_expected.to be_able_to(:show_statistics, group)
+      end
+
+      it 'may show deleted subgroups' do
+        is_expected.to be_able_to(:deleted_subgroups, group)
       end
 
       it 'may show service_tokens' do
@@ -100,6 +117,10 @@ describe GroupAbility do
         is_expected.to be_able_to(:show_statistics, group)
       end
 
+      it 'may show deleted subgroups' do
+        is_expected.to be_able_to(:deleted_subgroups, group)
+      end
+
       it 'may not index service tokens' do
         is_expected.not_to be_able_to(:index_service_tokens, group)
       end
@@ -110,6 +131,10 @@ describe GroupAbility do
 
       it 'may view log' do
         is_expected.to be_able_to(:log, group)
+      end
+
+      it 'may not manually delete people' do
+        is_expected.to_not be_able_to(:manually_delete_people, group)
       end
     end
   end
@@ -136,6 +161,10 @@ describe GroupAbility do
         is_expected.to be_able_to(:show_statistics, group)
       end
 
+      it 'may show deleted subgroups' do
+        is_expected.to be_able_to(:deleted_subgroups, group)
+      end
+
       it 'may show service tokens' do
         is_expected.to be_able_to(:index_service_tokens, group)
       end
@@ -147,6 +176,10 @@ describe GroupAbility do
       it 'may view log' do
         is_expected.to be_able_to(:log, group)
       end
+
+      it 'may manually delete people' do
+        is_expected.to be_able_to(:manually_delete_people, group)
+      end
     end
 
     context 'in top layer' do
@@ -154,6 +187,10 @@ describe GroupAbility do
 
       it 'may not show statistics' do
         is_expected.not_to be_able_to(:show_statistics, group)
+      end
+
+      it 'may not show deleted subgroups' do
+        is_expected.not_to be_able_to(:deleted_subgroups, group)
       end
 
       it 'may not show person notes' do
@@ -170,6 +207,10 @@ describe GroupAbility do
 
       it 'may not view log' do
         is_expected.to_not be_able_to(:log, group)
+      end
+
+      it 'may not manually delete people' do
+        is_expected.to_not be_able_to(:manually_delete_people, group)
       end
     end
   end
@@ -214,6 +255,10 @@ describe GroupAbility do
         is_expected.to be_able_to(:show_statistics, group)
       end
 
+      it 'may show deleted subgroups' do
+        is_expected.to be_able_to(:deleted_subgroups, group)
+      end
+
       it 'may show service tokens' do
         is_expected.to be_able_to(:index_service_tokens, group)
       end
@@ -224,6 +269,10 @@ describe GroupAbility do
 
       it 'may view log' do
         is_expected.to be_able_to(:log, group)
+      end
+
+      it 'may not manually delete people' do
+        is_expected.to_not be_able_to(:manually_delete_people, group)
       end
     end
 
@@ -250,6 +299,10 @@ describe GroupAbility do
         is_expected.to be_able_to(:show_statistics, group)
       end
 
+      it 'may show deleted subgroups' do
+        is_expected.to be_able_to(:deleted_subgroups, group)
+      end
+
       it 'may show service tokens' do
         is_expected.to be_able_to(:index_service_tokens, group)
       end
@@ -260,6 +313,10 @@ describe GroupAbility do
 
       it 'may view log' do
         is_expected.to be_able_to(:log, group)
+      end
+
+      it 'may not manually delete people' do
+        is_expected.to_not be_able_to(:manually_delete_people, group)
       end
     end
 
@@ -286,6 +343,10 @@ describe GroupAbility do
         is_expected.not_to be_able_to(:show_statistics, group)
       end
 
+      it 'may not show deleted subgroups' do
+        is_expected.not_to be_able_to(:deleted_subgroups, group)
+      end
+
       it 'may not show service tokens' do
         is_expected.not_to be_able_to(:index_service_tokens, group)
       end
@@ -296,6 +357,10 @@ describe GroupAbility do
 
       it 'may not view log' do
         is_expected.to_not be_able_to(:log, group)
+      end
+
+      it 'may not manually delete people' do
+        is_expected.to_not be_able_to(:manually_delete_people, group)
       end
     end
   end
@@ -349,6 +414,10 @@ describe GroupAbility do
         is_expected.not_to be_able_to(:show_statistics, group)
       end
 
+      it 'may show deleted subgroups' do
+        is_expected.to be_able_to(:deleted_subgroups, group)
+      end
+
       it 'mayi not show service tokens' do
         is_expected.not_to be_able_to(:index_service_tokens, group)
       end
@@ -360,11 +429,19 @@ describe GroupAbility do
       it 'may view log' do
         is_expected.to be_able_to(:log, group)
       end
+
+      it 'may not manually delete people' do
+        is_expected.to_not be_able_to(:manually_delete_people, group)
+      end
     end
 
     context 'without specific group' do
       it 'may not create subgroup' do
         is_expected.not_to be_able_to(:create, Group.new)
+      end
+
+      it 'may not show deleted subgroups' do
+        is_expected.not_to be_able_to(:deleted_subgroups, Group.new)
       end
     end
 
@@ -373,12 +450,20 @@ describe GroupAbility do
       it 'may create subgroup' do
         is_expected.to be_able_to(:create, group.children.new)
       end
+
+      it 'may not show deleted subgroups' do
+        is_expected.not_to be_able_to(:deleted_subgroups, group.children.new)
+      end
     end
 
     context 'in group from lower layer' do
       let(:group) { groups(:bottom_layer_one) }
       it 'may not create subgroup' do
         is_expected.not_to be_able_to(:create, group.children.new)
+      end
+
+      it 'may not show deleted subgroups' do
+        is_expected.not_to be_able_to(:deleted_subgroups, group)
       end
     end
   end
@@ -412,6 +497,10 @@ describe GroupAbility do
         is_expected.not_to be_able_to(:show_statistics, group)
       end
 
+      it 'may show deleted subgroups' do
+        is_expected.to be_able_to(:deleted_subgroups, group)
+      end
+
       it 'may not show service tokens' do
         is_expected.not_to be_able_to(:index_service_tokens, group)
       end
@@ -423,11 +512,19 @@ describe GroupAbility do
       it 'may view log' do
         is_expected.to be_able_to(:log, group)
       end
+
+      it 'may not manually delete people' do
+        is_expected.to_not be_able_to(:manually_delete_people, group)
+      end
     end
 
     context 'without specific group' do
       it 'may not create subgroup' do
         is_expected.not_to be_able_to(:create, Group.new)
+      end
+
+      it 'may not show deleted subgroups' do
+        is_expected.not_to be_able_to(:deleted_subgroups, Group.new)
       end
     end
 
@@ -436,12 +533,20 @@ describe GroupAbility do
       it 'may not create subgroup' do
         is_expected.not_to be_able_to(:create, group.children.new)
       end
+
+      it 'may not show deleted subgroups' do
+        is_expected.not_to be_able_to(:deleted_subgroups, group)
+      end
     end
 
     context 'in group from lower layer' do
       let(:group) { groups(:bottom_layer_one) }
       it 'may not create subgroup' do
         is_expected.not_to be_able_to(:create, group.children.new)
+      end
+
+      it 'may not show deleted subgroups' do
+        is_expected.not_to be_able_to(:deleted_subgroups, group)
       end
     end
   end
@@ -463,6 +568,29 @@ describe GroupAbility do
 
     it 'may index in top layer layer group' do
       is_expected.to be_able_to(:index_invoices, groups(:top_layer))
+    end
+  end
+
+  context 'see_invisible_from_above' do
+    let(:role) { Fabricate(Group::TopGroup::InvisiblePeopleManager.name.to_sym, group: groups(:top_group)) }
+
+    it 'may index_local_people in own group' do
+      is_expected.to be_able_to(:index_local_people, groups(:top_group))
+    end
+
+    it 'may index_local_people in same layer group' do
+      other = Fabricate(Group::TopGroup.name.to_sym, parent: groups(:top_layer))
+      is_expected.to be_able_to(:index_local_people, other)
+    end
+
+    it 'may index_local_people in lower layer group' do
+      is_expected.to be_able_to(:index_local_people, groups(:bottom_group_one_one))
+    end
+
+    it 'may not index_local_people in group outside own layer hierarchy' do
+      other_layer = Fabricate(Group::TopLayer.name.to_sym)
+      other = Fabricate(Group::TopGroup.name.to_sym, parent: other_layer)
+      is_expected.not_to be_able_to(:index_local_people, other)
     end
   end
 
@@ -539,6 +667,10 @@ describe GroupAbility do
 
     it 'may not read any group' do
       is_expected.not_to be_able_to(:read, groups(:bottom_layer_one))
+    end
+
+    it 'may not show deleted subgroups' do
+      is_expected.not_to be_able_to(:deleted_subgroups, groups{:bottom_layer_one})
     end
 
     it 'may not show_details any group' do

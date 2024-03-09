@@ -24,6 +24,24 @@ it:
     updated_info: Modificato
     deleted_info: Cancellato
     archived_info: Archiviato
+  activemodel:
+    models:
+      roles/termination:
+        one: Uscita
+        many: Dimissioni
+        other: Uscite
+    attributes:
+      roles/termination:
+        terminate_on: Data d'uscita
+    errors:
+      models:
+        roles/termination:
+          attributes:
+            terminate_on:
+              too_early: "deve essere nel futuro"
+              too_late: "non deve essere in accordo con il sito %{date} "
+            role:
+              not_terminatable: "non è annullabile"
   activerecord:
     errors:
       messages:
@@ -35,7 +53,6 @@ it:
         must_exist: non può essere lasciato vuoto
         readonly: non può venir cambiato
         cannot_be_later_than_today: non può essere più tardi di oggi
-        cannot_be_later_than_deleted_at: Deve avvenire prima o nello stesso giorno delle dimissioni.
       models:
         cors_origin:
           attributes:
@@ -70,6 +87,10 @@ it:
           attributes:
             person_id:
               taken: è già iscritto
+        group:
+          attributes:
+            self_registration_role_type:
+              blank: 'I dati di contatto devono essere compilati se si seleziona "Visualizzazione nella pagina di login".'
         message/letter_with_invoice:
           attributes:
             base:
@@ -89,6 +110,8 @@ it:
                   email" tutti gli indirizzi che sono assegnati come email principale
                   ad altre persone (il campo per l'email principale può essere lasciato
                   vuoto).
+            self_registration_reason_custom_text:
+              either_preset_or_custom: non può essere impostato se è stato selezionato un motivo di inserimento predefinito.
         person/add_request:
           attributes:
             person_id:
@@ -127,6 +150,8 @@ it:
             account_number:
               required: 'deve essere compilato'
               invalid_check_digit: 'non valido; cifra di controllo non corretta'
+            logo:
+              attached_unless_disabled: 'deve essere specificato se si seleziona una posizione del logo'
             payee:
               to_long: 'può contenere al massimo 2 righe'
               must_have_3_lines: 'deve contenere esattamente 3 righe'
@@ -134,6 +159,10 @@ it:
           attributes:
             additional_sender:
               invalid: "deve contenere indirizzi e-mail nel formato abcd@ee.ch o *@ee.ch. In caso di più indirizzi, questi vanno separati con ',' o ';'"
+        role:
+          attributes:
+            delete_on:
+              must_be_later_than_created_at: non può essere prima di "de"
     models:
       acts_as_taggable_on/tag:
         one: Tag
@@ -227,6 +256,10 @@ it:
         one: data
         many: Date
         other: Date
+      future_role:
+        one: Ruolo futuro
+        many: Ruoli futuri
+        other: Ruoli futuri
       family_member:
         one: Membri della famiglia
         many: Membri della famiglia
@@ -477,6 +510,8 @@ it:
         language: Lingua
         primary_group_id: Gruppo principale
         layer_group_label: Livello principale
+        self_registration_reason_text: Motivo dell'ingresso
+        self_registration_reason_custom_text: Motivo di ingresso definito dall'utente
       person_duplicate:
         birth_year: Anno di nascita
         roles_list: Ruoli
@@ -501,6 +536,7 @@ it:
         country: Nazione
         contact_id: Persona di contatto
         contact: Persona di contatto
+        contactable: Dati di contatto
         phone_numbers: Numeri di telefono
         social_accounts: Social media
         additional_emails: Altre email
@@ -512,13 +548,29 @@ it:
         description: Descrizione
         member_count: Numero di membri
         updated_at: Cambiato
-        self_registration_role_type: Registrazione esterna
+        self_registration: Registrazione esterna
+        self_registration_role_type: Tipo di rullo
         self_registration_link: Registrazione esterna
-        self_registration_notification_email: E-mail di notifica della registrazione esterna
+        self_registration_notification_email: E-mail di notifica
+        main_self_registration_group: Visualizzazione nella pagina di login
+        custom_self_registration_title: Titolo alla registrazione
+        nextcloud_url: Link a Nextcloud
         remove_logo: Rimuovere il logo attuale del gruppo
         privacy_policy_title: DPD/Dichiarazione di protezione dei dati Titolo
         privacy_policy: DPD/Dichiarazione di protezione dei dati
         remove_privacy_policy: Eliminare la DPD/dichiarazione di protezione dei dati
+        letter_logo: Logo della lettera
+        remove_letter_logo: Rimuovere il logo della lettera
+        letter_address_position: Posizione dell'indirizzo
+        letter_address_positions:
+          left: Sinistra
+          right: Destra
+        text_message_provider: Fornitore di SMS
+        text_message_providers:
+          aspsms: Aspsms
+        text_message_username: Nome utente SMS
+        text_message_password: Password SMS
+        text_message_originator: Mittente SMS
       event:
         group_ids: Gruppi
         groups: Gruppi
@@ -714,7 +766,9 @@ it:
         string_long: '%{role} in %{group}'
         dates: Date
         created_at: Da
-        deleted_at: Al
+        deleted_t: A
+        delete_on: A
+        delete_on_in_name: A
         class:
           archived: '%{role_kind} (archiviato)'
           permission:
@@ -733,6 +787,7 @@ it:
               approve_applications: Confermare le iscrizioni ai corse per le persone su questo livello.
               finance: Emettere e amministrare fatture
               impersonation: Utilizza Hitobito come altra persona.
+              see_invisible_from_above: Vedere altre persone che altrimenti non possono essere viste dai livelli superiori.
           kind:
             member:
               one: Membro
@@ -746,6 +801,10 @@ it:
               one: Esterno
               many: Esterni
               other: Esterni
+            future:
+              one: In futuro
+              many: Futuro
+              other: Futuro
       contact_account:
         predefined_labels:
           privat: Privato
@@ -780,7 +839,6 @@ it:
         name: Nome della lista
         description: Descrizione
         publisher: Mittente
-        subscribable: Gli abbonati possono iscriversi/disiscriversi personalmente.
         mail_name: Indirizzo delle mailing list
         mail_address: Mailing list
         mail_address_link: Mailinglist
@@ -955,18 +1013,20 @@ it:
         contact_id: Persona di contatto
         beneficiary: A favore di
         email: risposta all'indirizzo e-mail
+        logo_position: Posizione del logo
+        logo_positions:
+          disabled: Nessun logo
+          left: Sinistra
+          right: Destra
         payee: Versamento per
         payment_slip: Polizza di versamento
         payment_slips:
           qr: Fattura QR
-          ch_es: Polizza di versamento postale rossa (CH)
-          ch_bes: Polizza di versamento bancaria rossa (CH)
-          ch_esr: Polizza di versamento postale arancione (CH)
-          ch_besr: Polizza di versamento bancaria arancione (CH)
           no_ps: Nessuno
         participant_number: Numero di partecipante
         participant_number_internal: Numero interno del partecipante
         payment_reminder_configs: Solleciti
+        remove_logo: Rimuovere il logo attuale
         vat_number: Numero IVA
         donation_increase_percentage: aumento in %
         donation_calculation_year_amount: numero di anni
@@ -1076,6 +1136,7 @@ it:
       people: Leggere tutte le persone a cui hai accesso
       invoices: Leggere tutte le fatture a cui hai accesso
       mailing_lists: Leggere tutti gli abbonamenti a cui hai accesso
+      nextcloud: Leggi i tuoi gruppi Nextcloud e il tuo nome visualizzato
   errors:
     messages:
       attachments_not_allowed: "Non può contenere allegati"
@@ -1089,9 +1150,6 @@ it:
       on_or_before: "deve essere %{restriction} oppure prima"
       after: "deve essere dopo %{restriction}"
       on_or_after: "deve essere %{restriction} oppure dopo"
-      extension_whitelist_error: "accetta solo i seguenti tipi di dati: %{allowed_types}"
-      dimensions_too_large: "accetta solo immagini con una dimensione inferiore a %{maximum} Pixel"
-      filesize_too_large: "non può essere maggiore a %{maximum} MB"
       expired: "è scaduto, per favore richiedere nuovamente"
       not_found: "non trovato"
       already_confirmed: "è stato appena confermato"

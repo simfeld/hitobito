@@ -3,11 +3,11 @@
   = f.error_messages
   - if @group_selection.present? && @group_selection.size > 1
     = f.labeled(:group_id) do
-      .span4.shown{style: 'margin-left: 0px'}
+      .shown.ms-0
         = f.select(:group_id,
                    group_options_with_level,
                    { },
-                   { class: 'chosen-select',
+                   { class: 'form-select form-select-sm',
                      data: { remote: true,
                              url: role_types_group_roles_path(@group),
                              chosen_no_results: t('global.chosen_no_results') } })
@@ -15,14 +15,14 @@
     = f.hidden_field :group_id
 
   = f.labeled(:type) do
-    #role_type_select.span4.shown{style: 'margin-left: 0px'}
+    #role_type_select.shown.ms-0
       = collection_select(:role,
                           :type,
                           GroupDecorator.decorate(@group).possible_roles,
                           :sti_name,
                           :label,
-                          { },
-                          { class: 'chosen-select',
+                          roles_type_select_options(@group, entry),
+                          { class: 'form-select form-select-sm',
                             data: { remote: true,
                                     url: details_group_roles_path(@group),
                                     placeholder: ta(:please_select),
@@ -30,11 +30,12 @@
 
   = f.labeled(:label) do
     = f.input_field(:label,
-                    class: 'span4',
-                    help: t('roles.fields.help_optional_label'),
+                    help: t('roles.label.help_optional_label'),
                     data: { provide: :typeahead, source: entry.klass.available_labels })
 
   - if @person_id
     = f.hidden_field :person_id, value: @person_id
 
+  = f.hidden_field :convert_on, value: entry.convert_on
+  = f.hidden_field :delete_on, value: entry.delete_on
   = form_buttons(f, submit_label: ti(:"button.save"), cancel_url: '#')

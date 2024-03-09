@@ -8,7 +8,7 @@ app = window.App ||= {}
 app.HouseHolds = {
   showPeopleTypeAhead: (e) ->
     form = $(e.target).closest('form')
-    form.find(':input[name=household_query]').toggle()
+    form.find(':input[name=household_query]').closest('div.household_query_container').toggle()
     elem = form.find('.household_key_people')
     inputs = elem.find(":input[name='person[household_people_ids][]']")
 
@@ -32,7 +32,7 @@ app.HouseHolds = {
   showHouseholdAddressChangeWarning: ->
     if $('#household').is(':checked')
       $('.address-updated').remove()
-      $('.updates-household-address').removeClass('hidden')
+      $('.updates-household-address').removeClass('d-none')
 
 }
 $(document).on('change', '[data-household] :checkbox[name=household]', app.HouseHolds.showPeopleTypeAhead)

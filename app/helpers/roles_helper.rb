@@ -1,4 +1,4 @@
-# encoding: utf-8
+# frozen_string_literal: true
 
 #  Copyright (c) 2012-2022, Jungwacht Blauring Schweiz. This file is part of
 #  hitobito and licensed under the Affero General Public License version 3
@@ -60,9 +60,13 @@ module RolesHelper
   end
 
   def roles_type_select_options(group, role)
-    options = { include_blank: true }
+    options = { include_blank: "" }
     selected = existing_role(role) || default_role(group)
     options.merge(selected: selected)
+  end
+
+  def terminate_role_link(role)
+    Roles::TerminateRoleLink.new(role, self).render
   end
 
   private
@@ -72,6 +76,8 @@ module RolesHelper
   end
 
   def existing_role(role)
+    return role.convert_to if role.is_a?(FutureRole)
+
     role ? role.type : nil
   end
 

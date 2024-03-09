@@ -72,15 +72,24 @@ module Export::Pdf::Invoice
     def total_box # rubocop:disable Metrics/MethodLength
       bounding_box([0, cursor], width: bounds.width) do
         font_size(8) do
-          pdf.table total_data, position: :right, cell_style: { borders: [],
-                                                                border_color: 'CCCCCC',
-                                                                border_width: 0.5 } do
-            rows(0..1).padding = [2, 0]
+          data = total_data
+          payments = invoice.payments
+          pdf.table data, position: :right,
+                          column_widths: { 0 => 100 },
+                          cell_style: { borders: [],
+                                        border_color: 'CCCCCC',
+                                        border_width: 0.5 } do
+            last_row_index = data.size.pred
+            rows(0..last_row_index).padding = [2, 0]
 
-            row(2).font_style = :bold
-            row(2).borders = [:bottom, :top]
-            row(2).padding = [5, 0]
-            row(2).column(0).padding = [5, 15, 5, 0]
+            row(last_row_index).font_style = :bold
+
+            total_row_index = payments.any? ? last_row_index - payments.count.succ : last_row_index
+            row(total_row_index).font_style = :bold
+
+            row(last_row_index).borders = [:bottom, :top]
+            row(last_row_index).padding = [5, 0]
+            row(last_row_index).column(0).padding = [5, 15, 5, 0]
 
             column(1).align = :right
           end
@@ -90,11 +99,26 @@ module Export::Pdf::Invoice
 
     def total_data
       decorated = invoice.decorate
+      vat_row = if invoice.calculated[:vat].nonzero?
+                  [I18n.t('invoices.pdf.total_vat'), decorated.vat]
+                end
+      payment_data = if invoice.payments.any?
+                       payment_rows +
+                         [[I18n.t('invoices.pdf.amount_open'), decorated.amount_open]]
+                     end
+
       [
         [I18n.t('invoices.pdf.cost'), decorated.cost],
-        [I18n.t('invoices.pdf.total_vat'), decorated.vat],
-        [I18n.t('invoices.pdf.total'), decorated.total]
-      ]
+        vat_row,
+        [I18n.t('invoices.pdf.total'), decorated.total],
+        *payment_data
+      ].compact
+    end
+
+    def payment_rows
+      @payment_rows ||= invoice.payments.map do |p|
+        [I18n.t('invoices.pdf.payment'), invoice.decorate.format_currency(p.amount)]
+      end
     end
 
     def align_right(content)

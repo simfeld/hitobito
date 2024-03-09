@@ -85,14 +85,14 @@ describe Event::ApplicationMarketController do
           appl_id = "event_participation_#{appl_prio_1.id}"
           expect(all("#applications ##{appl_id} td").last).to have_selector('.fa-minus')
 
-          find("#applications ##{appl_id}").click_link('Warteliste')
+          find("#applications ##{appl_id} td div a", text: 'Warteliste').click
           fill_in('event_application_waiting_list_comment', with: 'only if possible')
-          find("#applications ##{appl_id} button.btn-primary").click
+          find("button.btn-primary", text: 'Anmeldung aktualisieren').click
           skip("cannot find icon .fa-ok")
           expect(all("#applications ##{appl_id} td").last).to have_selector('.fa-ok')
           expect(all("#applications ##{appl_id} td").last).to have_selector('.fa-comment')
 
-          find("#applications ##{appl_id}").click_link('Warteliste')
+          find("#applications ##{appl_id} td div a", text: 'Warteliste').click
           expect(all("#applications ##{appl_id} td").last).to have_selector('.fa-minus')
           expect(all("#applications ##{appl_id} td").last).to have_no_selector('.fa-comment')
 
@@ -118,11 +118,11 @@ describe Event::ApplicationMarketController do
           skip("cannot find icon .fa-ok")
           expect(all("#applications ##{appl_id} td").last).to have_selector('.fa-ok')
 
-          find("#applications ##{appl_id}").click_link('Warteliste')
+          find("#applications ##{appl_id} td div a", text: 'Warteliste').click
 
           expect(all("#applications ##{appl_id} td").last).to have_selector('.fa-minus')
 
-          find("#applications ##{appl_id}").click_link('Warteliste')
+          find("#applications ##{appl_id} td div a", text: 'Warteliste').click
           find("#applications ##{appl_id} button.btn-primary").click
           expect(all("#applications ##{appl_id} td").last).to have_selector('.fa-ok')
           expect(all("#applications ##{appl_id} td").last).to have_no_selector('.fa-comment')
@@ -145,6 +145,7 @@ describe Event::ApplicationMarketController do
           applications = find('#applications').text
 
           appl_id = "event_participation_#{appl_prio_1.id}"
+          appl_text = appl_prio_1.decorate.to_s(:list)
 
           all("#applications ##{appl_id} td").first.find('a').click
           expect(page).to have_no_selector("#applications ##{appl_id}")
@@ -153,7 +154,12 @@ describe Event::ApplicationMarketController do
           expect(find('#participants')).to have_content(appl_prio_1.person.to_s(:list))
           expect(all('#participants tr').last).to have_content(appl_prio_1.person.to_s(:list))
 
+          expect(page).to have_selector("#participants ##{appl_id}")
+          expect(page).to have_css('#participants', text: appl_text)
+
           all("#participants ##{appl_id} td").last.find('a').click
+
+          expect(page).to have_css('#applications', text: appl_text)
           expect(page).to have_no_selector("#participants ##{appl_id}")
 
           # first do find().should have_content to make capybara wait for animation, then all().last
@@ -174,6 +180,7 @@ describe Event::ApplicationMarketController do
 
           find('#waiting_list').set(true)
           click_button('Aktualisieren')
+          expect(page).to have_css('#applications tr', count: 2)
 
           participants = find('#participants').text
           applications = find('#applications').text
@@ -254,26 +261,28 @@ describe Event::ApplicationMarketController do
       appl2_id = "event_participation_#{appl_prio_2.id}"
       expect(page).to have_selector("#applications ##{appl2_id} td .fa-minus")
 
-      find("#applications ##{appl2_id}").click_link('Warteliste')
-      expect(page).to have_selector("#applications ##{appl2_id} td .popover")
+      find("#applications ##{appl2_id} td div a", text: 'Warteliste').click
+      sleep(2)
+      expect(body).to have_selector(".popover[role='tooltip']", count: 1)
 
-      find("#applications ##{appl1_id}").click_link('Warteliste')
-      expect(page).to have_selector("#applications ##{appl1_id} td .popover")
-      expect(all("#applications ##{appl2_id} td").last).to have_no_selector('.popover')
+      find("#applications ##{appl1_id} td div a", text: 'Warteliste').click
+      sleep(2)
+      expect(body).to have_selector(".popover[role='tooltip']", count: 1)
     end
 
     it 'may be closed with cancel link' do
       sign_in
       visit group_event_application_market_index_path(group.id, event.id)
+      sleep 0.1 # wait for popover to be setup
 
       appl1_id = "event_participation_#{appl_prio_1.id}"
       expect(page).to have_selector("#applications ##{appl1_id} td .fa-minus")
 
-      find("#applications ##{appl1_id}").click_link('Warteliste')
-      expect(page).to have_selector("#applications ##{appl1_id} td .popover")
+      find("#applications ##{appl1_id} td div a", text: 'Warteliste').click
+      expect(page).to have_selector(".popover")
 
-      find("#applications ##{appl1_id}").click_link('Abbrechen')
-      expect(all("#applications ##{appl1_id} td").last).to have_no_selector('.popover')
+      find(".popover .cancel", text: 'Abbrechen').click
+      expect(page).to have_no_selector('.popover')
     end
   end
 

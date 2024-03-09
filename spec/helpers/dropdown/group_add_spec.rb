@@ -26,11 +26,17 @@ describe 'Dropdown::GroupAdd' do
   it 'renders dropdown' do
     is_expected.to have_content 'Gruppe erstellen'
     is_expected.to have_selector 'ul.dropdown-menu'
-    is_expected.to have_selector 'a' do |tag|
-      expect(tag).to have_content 'Group::TopGroup'
-    end
-    is_expected.to have_selector 'a' do |tag|
-      expect(tag).to have_content 'Group::BottomLayer'
-    end
+
+    is_expected.to have_selector 'a', text: 'Top Group'
+    is_expected.to have_selector 'a', text: 'Bottom Layer'
+  end
+
+  it 'gets child options from #addable_child_types' do
+    expect(group).to receive(:addable_child_types).and_return([Group::MountedAttrsGroup, Group::GlobalGroup])
+
+    is_expected.to have_no_selector 'a', text: 'Top Group'
+    is_expected.to have_no_selector 'a', text: 'Bottom Layer'
+    is_expected.to have_selector 'a', text: 'Mounted Attrs Group'
+    is_expected.to have_selector 'a', text: 'Global Group'
   end
 end

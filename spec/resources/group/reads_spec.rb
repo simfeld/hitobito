@@ -7,24 +7,19 @@
 
 require 'spec_helper'
 
-RSpec.describe GroupResource, type: :resource do
-  let(:user) { user_role.person }
-  let!(:user_role) { Fabricate(Group::BottomGroup::Leader.name, person: Fabricate(:person), group: group) }
-
-  around do |example|
-    RSpec::Mocks.with_temporary_scope do
-      Graphiti.with_context(double({ current_ability: Ability.new(user) })) { example.run }
-    end
-  end
+describe GroupResource, type: :resource do
+  include Rails.application.routes.url_helpers
 
   describe 'serialization' do
     let!(:group) { groups(:bottom_group_two_one) }
+    before { group.update!(self_registration_role_type: Group::BottomGroup::Member.sti_name) }
 
     def serialized_attrs
       [
         :name,
         :short_name,
         :display_name,
+        :description,
         :type,
         :layer,
         :email,
@@ -32,6 +27,9 @@ RSpec.describe GroupResource, type: :resource do
         :zip_code,
         :town,
         :country,
+        :require_person_add_requests,
+        :self_registration_url,
+        :archived_at,
         :created_at,
         :updated_at,
         :deleted_at
@@ -40,14 +38,22 @@ RSpec.describe GroupResource, type: :resource do
 
     def date_time_attrs
       [
+        :archived_at,
         :created_at,
         :updated_at,
         :deleted_at
       ]
     end
 
+
     before do
       params[:filter] = { id: { eq: group.id } }
+    end
+
+    def read_attr(attr)
+      return group.public_send(attr) unless attr.match(/self_registration_url/)
+
+      group_self_registration_url(group)
     end
 
     it 'works' do
@@ -61,11 +67,79 @@ RSpec.describe GroupResource, type: :resource do
       expect(data.jsonapi_type).to eq('groups')
 
       (serialized_attrs - date_time_attrs).each do |attr|
-        expect(data.public_send(attr)).to eq(group.public_send(attr))
+        expect(data.public_send(attr)).to eq(read_attr(attr))
       end
 
       date_time_attrs.each do |attr|
         expect(data.public_send(attr)&.to_time).to eq(group.public_send(attr))
+      end
+    end
+
+    describe 'attribute self_registration_url' do
+      it 'is present if group.self_registration_active?' do
+        allow_any_instance_of(Group).to receive(:self_registration_active?).and_return(true)
+        render
+
+        expect(jsonapi_data[0]['self_registration_url']).to eq(group_self_registration_url(group))
+      end
+
+      it 'is blank if group.self_registration_active? is false' do
+        allow_any_instance_of(Group).to receive(:self_registration_active?).and_return(false)
+        render
+
+        expect(jsonapi_data[0]['self_registration_url']).to be_blank
+      end
+    end
+
+    describe 'optional logo attributes' do
+      before { params[:extra_fields] = { groups: 'logo' } }
+
+      it 'includes active_storage path to logo' do
+        group.logo.attach(
+          io: File.open('spec/fixtures/person/test_picture.jpg'),
+          filename: 'test_picture.jpg'
+        )
+        allow(context).to receive(:rails_storage_proxy_url).and_return('/active_storage')
+        render
+        expect(jsonapi_data[0]['logo']).to eq('/active_storage')
+      end
+
+      it 'is blank if no logo is set' do
+        render
+        expect(jsonapi_data[0]['logo']).to be_blank
+      end
+    end
+  end
+
+  describe 'filtering' do
+    let(:group) { groups(:top_group) }
+
+    it 'can filter by type' do
+      params[:filter] = { type: 'Group::TopGroup' }
+      render
+      expect(d).to have(1).item
+    end
+
+    it 'excludes archived group by default' do
+      group.update_columns(archived_at: Time.zone.now)
+      params[:filter] = { type: 'Group::TopGroup' }
+      render
+      expect(d).to be_empty
+    end
+
+    context 'by with_archived' do
+      before { group.update_columns(archived_at: Time.zone.now) }
+
+      it 'when true it includes archived groups' do
+        params[:filter] = { type: 'Group::TopGroup', with_archived: true }
+        render
+        expect(d).to have(1).item
+      end
+
+      it 'when false it excludes archived groups' do
+        params[:filter] = { type: 'Group::TopGroup', with_archived: false }
+        render
+        expect(d).to be_empty
       end
     end
   end
@@ -101,6 +175,19 @@ RSpec.describe GroupResource, type: :resource do
 
         expect(layer_group_data.id).to eq(group.layer_group_id)
         expect(layer_group_data.jsonapi_type).to eq('groups')
+      end
+    end
+
+    [:creator, :contact, :updater, :deleter].each do |assoc|
+      it "includes #{assoc} if asked to do so" do
+        group.update_columns("#{assoc}_id" => person.id)
+        expect(group.send(assoc)).to be_present
+        params[:include] = assoc
+
+        render
+
+        person_attrs = d[0].sideload(assoc)
+        expect(person_attrs).to be_present
       end
     end
   end

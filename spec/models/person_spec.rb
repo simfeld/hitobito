@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-#  Copyright (c) 2012-2022, Jungwacht Blauring Schweiz. This file is part of
+#  Copyright (c) 2012-2023, Jungwacht Blauring Schweiz. This file is part of
 #  hitobito and licensed under the Affero General Public License version 3
 #  or later. See the COPYING file at the top-level directory or at
 #  https://github.com/hitobito/hitobito.
@@ -472,8 +472,15 @@ describe Person do
     end
   end
 
-  it '#finance_groups returns list of group on which user may manage invoices' do
-    expect(people(:bottom_member).finance_groups).to eq [groups(:bottom_layer_one)]
+  describe '#finance_groups' do
+    let(:person) { people(:top_leader) }
+
+    it 'returns uniq list of layer groups on which user has finance permission' do
+      Fabricate(Group::TopLayer::TopAdmin.name.to_s, person: person, group: groups(:top_layer))
+      allow_any_instance_of(Group::TopLayer::TopAdmin).to receive(:permissions)
+        .and_return([:finance])
+      expect(person.finance_groups).to eq [groups(:top_layer)]
+    end
   end
 
   it '#filter_attrs returns list of filterable attributes' do
@@ -501,7 +508,6 @@ describe Person do
   end
 
   xdescribe '#picture' do
-    # include CarrierWave::Test::Matchers
     let(:person) { Fabricate(:person) }
 
     before do
@@ -779,6 +785,123 @@ describe Person do
       person.language = 'rm'
 
       expect(person).to_not be_valid
+    end
+  end
+
+  describe '#self_registration_reason' do
+    let(:reason) { Fabricate(:self_registration_reason) }
+
+    it 'can be set on create' do
+      person = Fabricate(:person, self_registration_reason: reason)
+      expect(person.self_registration_reason).to eq reason
+    end
+
+    it 'can not be set on update' do
+      person = Fabricate(:person)
+      expect { person.update(self_registration_reason: reason) }.
+        not_to change { person.reload.self_registration_reason }.from(nil)
+    end
+
+    it 'can not be changed on update' do
+      person = Fabricate(:person, self_registration_reason: reason)
+      new_reason = Fabricate(:self_registration_reason)
+      expect { person.update(self_registration_reason: new_reason) }.
+        not_to change { person.reload.self_registration_reason }.from(reason)
+    end
+
+    it 'can not be cleared on update' do
+      person = Fabricate(:person, self_registration_reason: reason)
+      expect { person.update(self_registration_reason: nil) }.
+        not_to change { person.reload.self_registration_reason }.from(reason)
+    end
+  end
+
+  describe '#self_registration_reason_custom_text' do
+    it 'can be set on create' do
+      person = Fabricate(:person, self_registration_reason_custom_text: 'foo')
+      expect(person.self_registration_reason_custom_text).to eq 'foo'
+    end
+
+    it 'can not be changed on update' do
+      person = Fabricate(:person, self_registration_reason_custom_text: 'foo')
+      expect { person.update(self_registration_reason_custom_text: 'bar') }.
+        not_to change { person.reload.self_registration_reason_custom_text }.from('foo')
+    end
+
+    it 'can not be cleared on update' do
+      person = Fabricate(:person, self_registration_reason_custom_text: 'foo')
+      expect { person.update(self_registration_reason_custom_text: nil) }.
+        not_to change { person.reload.self_registration_reason_custom_text }.from('foo')
+    end
+
+    it 'can not be set if #self_registration_reason is set' do
+      person = Person.new(
+        self_registration_reason: Fabricate(:self_registration_reason),
+        self_registration_reason_custom_text: 'foo'
+      )
+      person.validate
+
+      expect(person.errors[:self_registration_reason_custom_text]).
+        to eq ['kann nicht gesetzt werden, wenn ein vordefinierter Eintrittsgrund ausgewählt wurde.']
+    end
+  end
+
+  describe '#self_registration_reason_text' do
+    it 'returns #self_registration_reason.text if present' do
+      reason = Fabricate.build(:self_registration_reason, text: 'SelfRegistrationReason.text')
+      person = Fabricate.build(:person, self_registration_reason: reason)
+      expect(person.self_registration_reason_text).to eq 'SelfRegistrationReason.text'
+    end
+
+    it 'returns #self_registration_reason_custom_text if present' do
+      person = Fabricate.build(:person, self_registration_reason_custom_text: 'Person.self_registration_reason_custom_text')
+      expect(person.self_registration_reason_text).to eq 'Person.self_registration_reason_custom_text'
+    end
+
+    it 'returns nil if neither #self_registration_reason nor #self_registration_reason_custom_text is present' do
+      person = Fabricate.build(:person, self_registration_reason: nil, self_registration_reason_custom_text: nil)
+      expect(person.self_registration_reason_text).to be_nil
+    end
+  end
+
+  describe "#blocked?" do
+    it 'returns true if blocked_at is present' do
+      person = Fabricate.build(:person, blocked_at: Time.zone.now)
+      expect(person.blocked?).to be_truthy
+      expect(person.login_status).to eq(:blocked)
+    end
+
+    it 'returns false if blocked_at is blank' do
+      person = Fabricate.build(:person, blocked_at: nil)
+      expect(person.blocked?).to be_falsey
+    end
+  end
+
+  describe 'after update' do
+    let(:person) { people(:top_leader) }
+
+    it 'schedules duplicate locator job after updating duplication related attributes' do
+      expect(Person::DuplicateLocatorJob).to receive(:new)
+        .with(person.id)
+        .and_call_original
+
+      expect do
+        person.update!(first_name: 'Hansli', last_name: 'Miller')
+      end.to change {
+        Delayed::Job
+          .where(Delayed::Job
+          .arel_table[:handler]
+          .matches("%Person::DuplicateLocatorJob%"))
+          .count
+      }.by(1)
+    end
+
+    it 'does not schedule duplicate locator job if non relevant attributes are updated' do
+      expect(Person::DuplicateLocatorJob).to receive(:new)
+        .with(person.id)
+        .never
+
+      person.update!(nickname: 'Hellboy')
     end
   end
 end

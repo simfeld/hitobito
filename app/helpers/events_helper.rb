@@ -33,9 +33,9 @@ module EventsHelper
     end
   end
 
-  def event_user_application_possible?(event)
+  def event_user_application_possible?(event, person = current_user)
     participation = event.participations.new
-    participation.person = current_user
+    participation.person = person
 
     event.application_possible? && can?(:new, participation)
   end
@@ -101,7 +101,7 @@ module EventsHelper
     texts = [entry.application_conditions]
     texts.unshift(entry.kind.application_conditions) if entry.course_kind?
     safe_join(texts.select(&:present?).map do |text|
-      safe_auto_link(text, html: { target: '_blank' })
+      safe_auto_link(text, html: { target: '_blank' }) + tag.br
     end)
   end
 

@@ -8,8 +8,13 @@
 - if cannot?(:export_subscriptions, @mailing_list)
   .alert.alert-info= t('.export_not_allowed')
 
+- if @mailing_list.subscribable_for_configured?
+  .alert.alert-info= t(".subscribable_mode_#{@mailing_list.subscribable_mode}_info").html_safe
+
 - if @person_add_requests.present?
   = render 'person/add_requests/body_list'
+
+= render('subscriber/filter/show')
 
 = render('subs_table', title: Person.model_name.human(count: 2), subs: @person_subs)
 = render('subs_table', title: [Group.model_name.human(count: 2), Role.model_name.human(count: 2)].join(' / '), subs: @group_subs, edit_controller: 'group')

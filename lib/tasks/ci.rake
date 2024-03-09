@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-#  Copyright (c) 2012-2021, Jungwacht Blauring Schweiz. This file is part of
+#  Copyright (c) 2012-2023, Jungwacht Blauring Schweiz. This file is part of
 #  hitobito and licensed under the Affero General Public License version 3
 #  or later. See the COPYING file at the top-level directory or at
 #  https://github.com/hitobito/hitobito.
@@ -15,9 +15,9 @@ task :ci do
            'db:migrate',
            'ci:setup:env',
            'ci:setup:rspec',
+           'spec',
            'spec:sphinx',
-           'spec:features', # run feature specs first to get coverage from spec
-           'spec'].delete_if { |task| tasks_to_skip.include?(task) }
+           'spec:features:lenient'].delete_if { |task| tasks_to_skip.include?(task) }
 
   tasks.each { |task| Rake::Task[task].invoke }
 end
@@ -47,7 +47,11 @@ namespace :ci do
 
   namespace :setup do
     task :env do
+      require 'pathname'
+
       ENV['CI'] = 'true'
+      ENV['EDITOR'] = 'vi'
+      ENV['PATH'] = "#{ENV['PATH']}:#{Pathname.new('./bin').expand_path}"
     end
   end
 
@@ -58,7 +62,7 @@ namespace :ci do
       Rake::Task['log:clear'].invoke
       wagon_exec('DISABLE_DATABASE_ENVIRONMENT_CHECK=1 ' \
                  'bundle exec rake app:ci:setup:env ' \
-                 'app:ci:setup:rspec spec:all app:rubocop:report app:brakeman')
+                 'app:ci:setup:rspec app:spec:features:lenient app:rubocop:report app:brakeman')
       Rake::Task['erd'].invoke
     end
 

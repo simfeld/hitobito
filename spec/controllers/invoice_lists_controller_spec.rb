@@ -58,25 +58,25 @@ describe InvoiceListsController do
     before { sign_in(person) }
 
     it "ignores empty ids param" do
-      get :new, {
+      get :new,
         params: {
           group_id: group.id,
           invoice_list: { recipient_ids: person.id },
           ids: ''
         }
-      }
+
       expect(response).to be_successful
       expect(assigns(:invoice_list)).to have(1).recipients
     end
 
     it "values from ids param as passed by checkable override recipient_ids" do
-      get :new, {
+      get :new,
         params: {
           group_id: group.id,
           invoice_list: { recipient_ids: person.id },
           ids: "#{person.id},#{people(:top_leader).id}"
         }
-      }
+
       expect(response).to be_successful
       expect(assigns(:invoice_list)).to have(2).recipients
     end
@@ -85,7 +85,7 @@ describe InvoiceListsController do
       leader = Fabricate(Group::BottomLayer::Leader.sti_name, group: group).person
       role_types = [Group::BottomLayer::Leader]
 
-      get :new, {
+      get :new,
         params: {
           group_id: group.id,
           invoice_list: { recipient_ids: person.id },
@@ -97,7 +97,7 @@ describe InvoiceListsController do
             }
           }
         }
-      }
+
       expect(response).to be_successful
       expect(assigns(:invoice_list)).to have(1).recipients
       expect(assigns(:invoice_list).recipients).to eq([leader])
@@ -106,7 +106,7 @@ describe InvoiceListsController do
     it "handles blank filter params" do
       Fabricate(Group::BottomLayer::Leader.sti_name, group: group)
 
-      get :new, {
+      get :new,
         params: {
           group_id: group.id,
           invoice_list: { recipient_ids: person.id },
@@ -116,7 +116,7 @@ describe InvoiceListsController do
             filters: ''
           }
         }
-      }
+
       expect(response).to be_successful
       expect(assigns(:invoice_list)).to have(2).recipients
     end
@@ -128,34 +128,34 @@ describe InvoiceListsController do
     render_views
 
     it 'renders Rechnung title for single person' do
-      get :new, {
+      get :new,
         params: {
           group_id: group.id,
           invoice_list: { recipient_ids: person.id },
           ids: ''
         }
-      }
+
       expect(sheet_title).to have_text 'Rechnung'
     end
 
     it 'renders Rechnung title for multiple people' do
-      get :new, {
+      get :new,
         params: {
           group_id: group.id,
           invoice_list: { recipient_ids: "#{person.id},#{people(:top_leader).id}" },
           ids: ''
         }
-      }
+
       expect(sheet_title).to have_text 'Rechnung'
     end
 
     it 'renders Sammelrechnung title for abo' do
-      get :new, {
+      get :new,
         params: {
           group_id: group.id,
           invoice_list: { receiver_id: list.id, receiver_type: list.class }
         }
-      }
+
       expect(sheet_title).to have_text 'Sammelrechnung'
     end
   end
@@ -169,18 +169,18 @@ describe InvoiceListsController do
       expect(assigns(:invoice_list).recipients).to eq [person]
     end
 
-    it 'GET#new assigns assigns invoice_list from receiver' do
-      get :new, params: { group_id: group.id, invoice_list: { receiver_id: list.id, receiver_type: list.class  } }
+    it 'GET#new assigns invoice_list from receiver' do
+      get :new, params: { group_id: group.id, invoice_list: { receiver_id: list.id, receiver_type: list.class } }
       expect(response).to render_template('crud/new')
       expect(assigns(:invoice_list).receiver).to eq list
     end
 
-    it 'GET#new via xhr assigns invoice items and total' do
-      get :new, xhr: true, params: { group_id: group.id, invoice_list: { invoice: invoice_attrs } }
-      invoice = assigns(:invoice_list).invoice
-      expect(invoice.invoice_items).to have(2).items
-      expect(invoice.calculated[:total]).to eq 3
-      expect(response).to render_template('invoice_lists/new')
+    it 'GET#new assigns payment_information from invoice_config' do
+      group.invoice_config.update(payment_information: 'Bitte schnellstmöglich einzahlen')
+
+      get :new, params: { group_id: group.id, invoice_list: { receiver_id: list.id, receiver_type: list.class } }
+      expect(response).to render_template('crud/new')
+      expect(assigns(:invoice_list).invoice.payment_information).to eq 'Bitte schnellstmöglich einzahlen'
     end
 
     it 'POST#create creates an invoice for single member' do

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#  Copyright (c) 2019-2022, Schweizer Blasmusikverband. This file is part of
+#  Copyright (c) 2019-2024, Schweizer Blasmusikverband. This file is part of
 #  hitobito and licensed under the Affero General Public License version 3
 #  or later. See the COPYING file at the top-level directory or at
 #  https://github.com/hitobito/hitobito.
@@ -25,8 +25,8 @@ core_dir="$(readlink -f $(dirname "$core_bin_dir"))" # directory of hitobito (-c
 
 # helpers
 function require_wagon_name() {
-  if [[ $wagon_name = 'no wagon selected' ]]; then
-    echo "you must select a wagon to manage"
+  if [[ $wagon_name = 'No wagon selected' ]]; then
+    echo "You must select a wagon to manage"
     bin/active_wagon.rb nonexisting
     exit 1
   fi
@@ -46,46 +46,62 @@ function clone_wagon() {
       then git clone "git@github.com:hitobito/hitobito_${wagon_name}.git" ../hitobito_${wagon_name}; fi )
 }
 
-function setup_idea_project() {
-  echo "setting up idea project"
-  mkdir -p "../hitobito_${wagon_name}/.idea"
-
-  cat << IML > "../hitobito_${wagon_name}/.idea/hitobito_${wagon_name}.xml"
-<?xml version="1.0" encoding="UTF-8"?>
-<module type="RUBY_MODULE" version="4">
-  <component name="FacetManager">
-    <facet type="RailsFacetType" name="Ruby on Rails">
-      <configuration>
-        <RAILS_FACET_CONFIG_ID NAME="RAILS_FACET_SUPPORT_REMOVED" VALUE="false" />
-        <RAILS_FACET_CONFIG_ID NAME="RAILS_TESTS_SOURCES_PATCHED" VALUE="true" />
-        <RAILS_FACET_CONFIG_ID NAME="RAILS_FACET_APPLICATION_ROOT" VALUE="\$MODULE_DIR\$" />
-      </configuration>
-    </facet>
-  </component>
-</module>
-IML
-
-  cat << MODULE > "../hitobito_${wagon_name}/.idea/modules.xml"
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="ProjectModuleManager">
-    <modules>
-      <module fileurl="file://\$PROJECT_DIR\$/../hitobito/hitobito.iml" filepath="\$PROJECT_DIR\$/../hitobito/hitobito.iml" />
-      <module fileurl="file://\$PROJECT_DIR\$/.idea/hitobito_${wagon_name}.iml" filepath="\$PROJECT_DIR\$/.idea/hitobito_${wagon_name}.iml" />
-    </modules>
-  </component>
-</project>
-MODULE
+function recreate_dbs() {
+  recreate_development_db
+  recreate_test_db
 }
 
-function recreate_dbs() {
-  echo "recreating dev and test databases"
-  cat << SQL | MYSQL_PWD="${RAILS_DB_PASSWORD}" mysql -u "${RAILS_DB_USERNAME}"
-DROP DATABASE IF EXISTS hit_${wagon_name}_development;
-CREATE DATABASE hit_${wagon_name}_development;
-DROP DATABASE IF EXISTS hit_${wagon_name}_test;
-CREATE DATABASE hit_${wagon_name}_test;
+function recreate_development_db() {
+  recreate_db $(printenv RAILS_DB_NAME)
+}
+
+function recreate_test_db() {
+  recreate_db $(printenv RAILS_TEST_DB_NAME)
+}
+
+function recreate_db() {
+  db_name=$1
+
+  if [[ -z ${db_name} ]]; then
+    echo "$1 must be set."
+    echo "Maybe you forgot to activate a WAGON?"
+    exit 1
+  fi
+  echo "Recreating DB (${db_name})"
+
+  cmds=$( cat << SQL
+DROP DATABASE IF EXISTS ${db_name};
+CREATE DATABASE ${db_name};
 SQL
+  )
+
+  echo $cmds
+
+  if [[ $RAILS_DB_SOCKET ]]; then
+    echo "$cmds" | mysql -u "${RAILS_DB_USERNAME:-hitobito}" -p"${RAILS_DB_PASSWORD:-hitobito}"
+  else
+    echo "$cmds" | mysql -u "${RAILS_DB_USERNAME:-hitobito}" -p"${RAILS_DB_PASSWORD:-hitobito}" -h "${RAILS_DB_HOST:-127.0.0.1}" -P "${RAILS_DB_PORT:-33066}"
+  fi
+}
+
+function setup_dbs() {
+  setup_development_db
+  setup_test_db
+}
+
+function setup_development_db() {
+    echo "Migrating and seeding development database"
+    bundle exec rails db:migrate
+    bundle exec rails wagon:migrate
+    bundle exec rails db:seed
+    bundle exec rails wagon:seed
+}
+
+function setup_test_db() {
+    echo "Preparing test database"
+    bundle exec rails db:structure:dump_sql
+    RAILS_ENV=test rails db:structure:load_sql
+    rm -f db/structure.sql
 }
 
 function indent2 {
@@ -115,18 +131,27 @@ case $cmd in
     clone_wagon
     bin/active_wagon.rb "$wagon_name"
     recreate_dbs
-
-    echo "migrating and seeding development database"
-    bundle exec rails db:migrate; bundle exec rails db:seed wagon:migrate; bundle exec rails wagon:seed
-
-    echo "migrating test database"
-    RAILS_ENV=test exec rails db:migrate; RAILS_ENV=test exec rails wagon:migrate
+    setup_dbs
     ;;
 
-  create_idea_project)
+  clone)
     require_wagon_name
-    setup_idea_project
-  ;;
+    clone_wagon
+    ;;
+
+  reset-database)
+    recreate_dbs
+    setup_dbs
+    ;;
+
+  create-database)
+    recreate_dbs
+    ;;
+
+  reset-test-database)
+    recreate_test_db
+    setup_test_db
+    ;;
 
   gemfile)
     bundle check || bundle
@@ -136,9 +161,7 @@ case $cmd in
 
   configs)
     echo "$WAGONS" | xargs -L1 -d' ' echo | grep -v '^$' | xargs -L1 -I% \
-      cp -v .rspec .overcommit.yml "../hitobito_%/"
-    echo "$WAGONS" | xargs -L1 -d' ' echo | grep -v '^$' | xargs -L1 -I% \
-      cp -vrf .git-hooks "../hitobito_%/"
+      cp -v .rspec "../hitobito_%/"
     ;;
 
   binstubs)
@@ -182,12 +205,12 @@ case $cmd in
 
     # grep in core
     echo ">> grepping in hitobito <<" | highlight_phrases
-    git grep "$2"
+    git grep "${@:2}"
 
     # grep in installed wagons
     for wagon in $(existing_wagon_names); do
       echo ">> grepping in ../hitobito_$wagon/ <<" | highlight_phrases
-      (cd "../hitobito_$wagon/"; git grep --color=always "$2")
+      (cd "../hitobito_$wagon/"; git grep --color=always "${@:2}")
     done
     ;;
 
@@ -198,6 +221,45 @@ case $cmd in
     shift # loose the "core-spec" argument
     rake db:migrate # ensure that schema.rb is current for the test-db to load
     rspec $@
+    ;;
+
+  spec-all)
+    for wagon in $(existing_wagon_names); do
+      echo "$wagon" | red
+      wagon spec $@
+    done
+    ;;
+
+  spec)
+    require_wagon_name
+    shift # loose the "spec" argument
+    shift # loose the wagon-name argument
+
+    previous_wagon=$(grep PRIMARY_WAGON .envrc | sed 's/.*=//')
+
+    # setup
+
+    # write and allow .envrc
+    $0 activate "$wagon_name"
+    if [[ -x $(command -v direnv) ]]; then direnv allow; fi
+
+    # setup for specs
+    direnv exec ../hitobito/ $0 gemfile
+    direnv exec ../hitobito/ $0 reset-test-database
+
+    # prepare DB
+    export RAILS_ENV=test
+    direnv exec ../hitobito/ bundle exec rake db:migrate
+    direnv exec ../hitobito/ bundle exec rake wagon:migrate
+
+    # run specs in subshell to return to current directory
+    (
+      cd "../hitobito_${wagon_name}" \
+      && direnv exec "../hitobito_${wagon_name}" rspec $@
+    )
+
+    # reset
+    $0 activate "$previous_wagon"
     ;;
 
   git-all)
@@ -244,27 +306,44 @@ case $cmd in
 
     new_wagon_dir="../hitobito_$wagon_name"
 
-    mv -nv "vendor/wagons/$wagon_name" "$new_wagon_dir"
+    mv -nfv vendor/wagons/$wagon_name/* "$new_wagon_dir"
+    mv -nfv vendor/wagons/$wagon_name/.{ruby-version,rubocop.yml,gitignore} "$new_wagon_dir"
+    rm -rf vendor/
 
     pushd "$new_wagon_dir"
       mv github .github
       git init
-      git ci -m "Create $wagon_name Wagon"
+      git add .
+      git commit -m "Create $wagon_name Wagon"
     popd
 
     $0 activate "$wagon_name"
     if [[ -x $(command -v direnv) ]]; then direnv allow; fi
-    $0 gemfile
-    $0 configs
+    WAGONS=$wagon_name $0 gemfile
+    WAGONS=$wagon_name $0 configs
 
     pushd "$new_wagon_dir"
-      git ci -a -m "Add common configs"
-    popd
-    ;;
+      if [[ -x $(command -v direnv) ]]; then direnv allow; fi
 
-  clone)
-    require_wagon_name
-    clone_wagon
+      git add .
+      git commit -m "Add common configs"
+    popd
+
+    pushd "$new_wagon_dir"
+      $EDITOR lib/tasks/license.rake
+      $EDITOR COPYING
+      $EDITOR AUTHORS
+      $EDITOR hitobito_${wagon_name}.gemspec
+
+      git add .
+      git commit -m "Add License and Copyright Info"
+    popd
+
+    pushd "$new_wagon_dir"
+      rake app:license:insert
+      git add .
+      git commit -m "Insert License Headers"
+    popd
     ;;
 
   overwritten-in-wagon)
@@ -278,9 +357,12 @@ function __wagon_commands() {
   echo '
     activate
     binstubs
+    bootstrap
+    clone
     configs
     core-spec
     create
+    create-database
     gemfile
     git
     git-all
@@ -288,6 +370,10 @@ function __wagon_commands() {
     help
     list
     overwritten-in-wagon
+    reset-database
+    reset-test-database
+    spec
+    spec-all
     test-prepare
     test-speedup
     update-copyright
@@ -315,7 +401,7 @@ function __wagon_completion() {
       return
       ;;
 
-    activate)
+    activate | spec)
       COMPREPLY=( $( compgen -W "$(__wagon_list)" -- "$cur" ) )
       return
       ;;
@@ -327,8 +413,11 @@ COMPLETION
     ;;
 
   help|*)
-    echo "USAGE: $0 [activate] <PROJECT>"
-    echo "       $0 [test-prepare|test-speedup|core-spec|update-copyright]"
+    echo "USAGE: $0 [activate] <WAGON>|core"
+    echo "       $0 [clone|bootstrap] <WAGON>"
+    echo "       $0 [create-datbase|reset-database|test-prepare|test-speedup|core-spec|update-copyright]"
+    echo "       $0 [spec] <WAGON>"
+    echo "       $0 [spec-all|reset-test-database|overwritten-in-wagon]"
     echo "       $0 [grep] <TERM>"
     echo "       $0 [git|git-all] <ARGS>"
     echo "       $0 [gemfile|configs|binstubs|list]"

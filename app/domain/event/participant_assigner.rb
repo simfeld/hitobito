@@ -34,6 +34,7 @@ class Event::ParticipantAssigner
       create_participant_role
       trigger_hooks
       event.refresh_participant_counts!
+      send_confirmation
     end
     event.reload
   end
@@ -54,6 +55,7 @@ class Event::ParticipantAssigner
       original_event = participation.application.priority_1 || participation.event
       update_participation_event(original_event)
       original_event.refresh_participant_counts!
+      send_confirmation
     end
     event.reload
   end
@@ -119,4 +121,7 @@ class Event::ParticipantAssigner
     end
   end
 
+  def send_confirmation
+    Event::ParticipationConfirmationJob.new(participation, send_approval: false).enqueue!
+  end
 end

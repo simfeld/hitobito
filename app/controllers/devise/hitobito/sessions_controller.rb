@@ -15,9 +15,13 @@ class Devise::Hitobito::SessionsController < Devise::SessionsController
   respond_to :html
   respond_to :json, only: [:new, :create]
 
+  skip_before_action :reject_blocked_person!
   before_action :reset_two_factor_authentication,
                 if: :two_factor_authentication_pending?,
                 only: [:new]
+
+  before_action :configure_permitted_parameters
+  after_action :reset_inactivity_block_warning_sent_at, only: [:create]
 
   def create
     super do |resource|
@@ -37,6 +41,12 @@ class Devise::Hitobito::SessionsController < Devise::SessionsController
     end
   end
 
+  protected
+
+  def configure_permitted_parameters
+    devise_parameter_sanitizer.permit(:sign_in, keys: [:login_identity])
+  end
+
   private
 
   def second_factor_required?(resource)
@@ -49,5 +59,9 @@ class Devise::Hitobito::SessionsController < Devise::SessionsController
     else
       'application'
     end
+  end
+
+  def reset_inactivity_block_warning_sent_at
+    current_user&.update(inactivity_block_warning_sent_at: nil)
   end
 end

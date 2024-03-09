@@ -1,4 +1,9 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
+#  Copyright (c) 2012-2024, Puzzle ITC. This file is part of
+#  hitobito and licensed under the Affero General Public License version 3
+#  or later. See the COPYING file at the top-level directory or at
+#  https://github.com/hitobito/hitobito.
 
 require 'spec_helper'
 
@@ -37,7 +42,7 @@ describe 'StandardFormBuilder' do
       more_ids: :has_many_field,
     }.each do |attr, method|
       it "dispatches #{attr} attr to #{method}" do
-        expect(form).to receive(method).with(attr, {})
+        expect(form).to receive(method).with(attr, {:class=>""})
         form.input_field(attr)
       end
 
@@ -58,7 +63,7 @@ describe 'StandardFormBuilder' do
   describe '#labeled_input_field' do
     context 'when required' do
       subject { form.labeled_input_field(:name) }
-      it { is_expected.to include('class="control-group required"') }
+      it { is_expected.to include('class="col-md-3 col-xl-2 pb-1 col-form-label text-md-end required"') }
     end
 
     context 'when not required' do
@@ -73,14 +78,18 @@ describe 'StandardFormBuilder' do
 
     context 'with label' do
       subject { form.labeled_input_field(:name, label: 'Some Caption') }
-      it { is_expected.to include(form.label(:name, 'Some Caption', class: 'control-label')) }
+      it { is_expected.to include(form.label(:name, 'Some Caption', class: 'col-md-3 col-xl-2 pb-1 col-form-label text-md-end required')) }
     end
 
     context 'with addon' do
       subject { form.labeled_input_field(:name, addon: 'Some Addon') }
-      it { is_expected.to match(/class="input-append"/) }
-      it { is_expected.to match(/class="add-on"/) }
+      it { is_expected.to match(/class="input-group-text"/) }
       it { is_expected.to match(/Some Addon/) }
+    end
+
+    context 'with label_class' do
+      subject { form.labeled_input_field(:name, label: 'Some Caption', label_class: 'custom-class') }
+      it { is_expected.to include(form.label(:name, 'Some Caption', class: 'custom-class col-form-label text-md-end required')) }
     end
   end
 
@@ -238,6 +247,21 @@ describe 'StandardFormBuilder' do
 
     it 'returns true for labeled_ methods' do
       expect(form.respond_to?(:labeled_text_field)).to be_truthy
+    end
+  end
+
+  context 'open-struct as entry' do
+    let(:entry) do
+      OpenStruct.new(
+        cutoff_date: nil,
+        cutoff_date_type: :date,
+        amount: nil,
+        amount_type: :number
+      )
+    end
+
+    it 'ignores errors_on' do
+      expect(form.send(:errors_on?, :cutoff_date)).to be_falsey
     end
   end
 end

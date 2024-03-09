@@ -14,13 +14,13 @@ app.HelpTextToggler = {
 app.HelpTextForm = {
   syncSelectFields: ->
     activeContext = $('#help_text_context').val()
-    $('.help_text_context_keys').addClass('hidden').find('select').prop("disabled", true)
-    $(document.getElementById(activeContext)).removeClass('hidden').find('select').prop("disabled", false)
+    $('.help_text_context_keys').addClass('d-none').find('select').prop("disabled", true)
+    $(document.getElementById(activeContext)).removeClass('d-none').find('select').prop("disabled", false)
 }
 
 $(document).on 'click', '.help-text-trigger', app.HelpTextToggler.toggle
 $(document).on 'change', '#help_text_context', app.HelpTextForm.syncSelectFields
 
-$(document).on 'turbolinks:load', () ->
+$(document).on 'turbo:load', () ->
   app.HelpTextToggler.hideAll()
   app.HelpTextForm.syncSelectFields()

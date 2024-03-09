@@ -22,6 +22,7 @@ describe GroupDecorator, :draper_with_helpers do
                  Group::TopGroup::Secretary,
                  Group::TopGroup::LocalSecretary,
                  Group::TopGroup::Member,
+                 Group::TopGroup::InvisiblePeopleManager,
                  Role::External]
     end
   end
@@ -44,8 +45,19 @@ describe GroupDecorator, :draper_with_helpers do
     end
   end
 
-  describe 'selecting attributes' do
+  describe 'supports_self_registration?' do
+    it 'returns true if it has any allowed_roles_for_self_registration' do
+      allow(subject).to receive(:allowed_roles_for_self_registration).and_return([double])
+      expect(subject.supports_self_registration?).to be true
+    end
 
+    it 'returns false if it has no allowed_roles_for_self_registration' do
+      allow(subject).to receive(:allowed_roles_for_self_registration).and_return([])
+      expect(subject.supports_self_registration?).to be false
+    end
+  end
+
+  describe 'selecting attributes' do
     class DummyGroup < Group # rubocop:disable Lint/ConstantDefinitionInBlock
       self.used_attributes += [:foo, :bar]
     end
@@ -95,6 +107,18 @@ describe GroupDecorator, :draper_with_helpers do
           groups(:bottom_group_one_two)
         ].collect(&:id)
       )
+    end
+  end
+
+  describe 'primary_group_toggle_link' do
+    let(:person) { people(:top_leader) }
+    let(:html) { GroupDecorator.new(model).primary_group_toggle_link(person, model) }
+    subject(:node) { Capybara::Node::Simple.new(html) }
+
+    it 'renders link with icon and text' do
+      expect(node).to have_link 'Hauptgruppe setzen'
+      expect(node).to have_css 'a i.fas.fa-star[filled=true]'
+      expect(node.find('a')['href']).to eq(primary_group_group_person_path(model, person, primary_group_id: model.id))
     end
   end
 

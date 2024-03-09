@@ -24,6 +24,24 @@ fr:
     updated_info: Modifié
     deleted_info: Supprimé
     archived_info: Archivé
+  activemodel:
+    models:
+      roles/termination:
+        one: Sortie
+        many: Départs
+        other: Sorties
+    attributes:
+      roles/termination:
+        terminate_on: Date de sortie
+    errors:
+      models:
+        roles/termination:
+          attributes:
+            terminate_on:
+              too_early: "doit se situer dans le futur"
+              too_late: "ne doit pas être postérieur à %{date} "
+            role:
+              not_terminatable: "n'est pas résiliable"
   activerecord:
     errors:
       messages:
@@ -35,7 +53,6 @@ fr:
         must_exist: doivent être présents
         readonly: ne peut pas être modifié
         cannot_be_later_than_today: ne peut pas être plus tard qu'aujourd'hui
-        cannot_be_later_than_deleted_at: doit avoir lieu avant ou le même jour que la sortie
       models:
         cors_origin:
           attributes:
@@ -70,6 +87,10 @@ fr:
           attributes:
             person_id:
               taken: est déjà annoncé
+        group:
+          attributes:
+            self_registration_role_type:
+              blank: '§doit être rempli si "Affichage sur la page de connexion" est sélectionné'
         message/letter_with_invoice:
           attributes:
             base:
@@ -90,6 +111,8 @@ fr:
                   mêmes si elles sont déjà attribuées en tant qu'adresse principale
                   d'un autre utilisateur. (Dans ce cas, tu peux laisser "adresse e-mail
                   principale" vide.)
+            self_registration_reason_custom_text:
+              either_preset_or_custom: ne peut pas être activé si un motif d'entrée prédéfini a été sélectionné.
         person/add_request:
           attributes:
             person_id:
@@ -128,6 +151,8 @@ fr:
             account_number:
               required: 'doit être renseigné'
               invalid_check_digit: 'n''est pas valable ; code de vérification incorrect'
+            logo:
+              attached_unless_disabled: 'doit être indiqué si une position de logo est sélectionnée'
             payee:
               to_long: 'doit contenir 2 lignes au maximum'
               must_have_3_lines: 'doit contenir exactement 3 lignes'
@@ -135,6 +160,10 @@ fr:
           attributes:
             additional_sender:
               invalid: "doit contenir des adresses e-mail au format abcd@ee.ch ou *@ee.ch. Multiples adresses doivent être séparées par ',' ou ';'."
+        role:
+          attributes:
+            delete_on:
+              must_be_later_than_created_at: ne peut pas être avant "de"
     models:
       acts_as_taggable_on/tag:
         one: Tag
@@ -228,6 +257,10 @@ fr:
         one: date
         many: Dates
         other: Dates
+      future_role:
+        one: Rôle futur
+        many: Rôles futurs
+        other: Rôles futurs
       family_member:
         one: Membre de la famille
         many: Membres de la famille
@@ -436,7 +469,7 @@ fr:
       person:
         salutation: Titre
         first_name: Prénom
-        last_name: Nom de famille
+        last_name: Nom
         name: Nom
         company_name: Nom de l'entreprise
         company: Entreprise
@@ -478,6 +511,8 @@ fr:
         language: Langue
         primary_group_id: Groupe principal
         layer_group_label: Niveau
+        self_registration_reason_text: Motif d'entrée
+        self_registration_reason_custom_text: Motif d'entrée prédéfini
       person_duplicate:
         birth_year: Année de naissance
         roles_list: Rôles
@@ -502,6 +537,7 @@ fr:
         country: Pays
         contact_id: Personne de contact
         contact: Personne de contact
+        contactable: Coordonnées
         phone_numbers: Numéros de téléphone
         social_accounts: Réseaux sociaux
         additional_emails: Adresses e-mail supplémentaires
@@ -513,13 +549,29 @@ fr:
         description: Description
         member_count: Nombre de membres
         updated_at: Modification
-        self_registration_role_type: Enregistrement externe
+        self_registration: Enregistrement externe
+        self_registration_role_type: Type de rôle
         self_registration_link: Enregistrement externe
-        self_registration_notification_email: Email de notification d'enregistrement externe
+        self_registration_notification_email: E-mail de notification
+        main_self_registration_group: Affichage sur la page de connexion
+        custom_self_registration_title: Titre lors de l'inscription
+        nextcloud_url: Lien vers Nextcloud
         remove_logo: supprimer le logo actuel du groupe
         privacy_policy_title: Déclaration de protection des données - Titre
         privacy_policy: Déclaration de protection des données
         remove_privacy_policy: Déclaration de protection des données - supprimer
+        letter_logo: Logo de la lettre
+        remove_letter_logo: Supprimer le logo de la lettre
+        letter_address_position: Position de l'adresse
+        letter_address_positions:
+          left: Gauche
+          right: Droite
+        text_message_provider: Fournisseur de SMS
+        text_message_providers:
+          aspsms: Aspsms
+        text_message_username: Nom d'utilisateur SMS
+        text_message_password: Mot de passe SMS
+        text_message_originator: Expéditeur du SMS
       event:
         group_ids: Groupes
         groups: Groupes
@@ -715,7 +767,9 @@ fr:
         string_long: '%{role} dans %{group}'
         dates: Dates
         created_at: De
-        deleted_at: Jusqu'à
+        deleted_t: à
+        delete_on: à
+        delete_on_in_name: à
         class:
           archived: '%{role_kind} (archivé)'
           permission:
@@ -734,6 +788,7 @@ fr:
               approve_applications: Confirmation des inscriptions aux cours pour les personnes de ce niveau.
               finance: Création et gestion de factures
               impersonation: Se servir de hitobito comme autre personne.
+              see_invisible_from_above: Voit en plus les personnes qui ne peuvent normalement pas être vues par les niveaux supérieurs.
           kind:
             member:
               one: Membre
@@ -747,6 +802,10 @@ fr:
               one: Contact externe
               many: Membres externes
               other: Membres externes
+            future:
+              one: Futur
+              many: Futur
+              other: Futur
       contact_account:
         predefined_labels:
           privat: Privé
@@ -781,7 +840,6 @@ fr:
         name: Nom
         description: Description
         publisher: Éditeur
-        subscribable: Les abonnés peuvent s'inscrire / se désinscrire eux-mêmes
         mail_name: Adresse de la liste de diffusion
         mail_address: Liste de diffusion
         mail_address_link: Liste de diffusion
@@ -956,18 +1014,20 @@ fr:
         contact_id: Personne de contact
         beneficiary: En faveur de
         email: Réponse à l'adresse e-mail
+        logo_position: Position du logo
+        logo_positions:
+          disabled: Pas de logo
+          left: Gauche
+          right: Droite
         payee: Paiement à
         payment_slip: Bulletin de versement
         payment_slips:
           qr: Facture QR
-          ch_es: Bulletin de versement postal rouge (CH)
-          ch_bes: Bulletin de versement bancaire rouge (CH)
-          ch_esr: Bulletin de versement postal orange (CH)
-          ch_besr: Bulletin de versement bancaire orange (CH)
           no_ps: Aucun
         participant_number: Numéro du participant
         participant_number_internal: Numéro du participant interne
         payment_reminder_configs: Rappels
+        remove_logo: Supprimer le logo actuel
         vat_number: N° TVA
         donation_increase_percentage: Augmentation en %
         donation_calculation_year_amount: Nombre d'années
@@ -1077,6 +1137,7 @@ fr:
       people: Lire toutes les personnes auxquelles tu as accès
       invoices: Lire toutes les factures auxquelles tu as accès
       mailing_lists: Lire tous les abonnements auxquels tu as accès
+      nextcloud: Lire vos groupes Nextcloud et votre nom d'affichage
   errors:
     messages:
       attachments_not_allowed: "ne doit pas contenir d'annexe"
@@ -1090,9 +1151,6 @@ fr:
       on_or_before: "doit être %{restriction} ou antérieur"
       after: "doit être ultérieur à %{restriction}"
       on_or_after: "doit être %{restriction} ou ultérieur"
-      extension_whitelist_error: "n'accepte que les types de données suivants : %{allowed_types}"
-      dimensions_too_large: "n'accepte que les images d'une taille de moins de %{maximum} pixels"
-      filesize_too_large: "ne peut pas faire plus de %{maximum} MB"
       expired: "est échu, prière d'en refaire demande"
       not_found: "pas trouvé"
       already_confirmed: "a déjà été confirmé"

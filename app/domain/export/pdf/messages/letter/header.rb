@@ -8,11 +8,9 @@
 class Export::Pdf::Messages::Letter
   class Header < Section
     include Export::Pdf::AddressRenderers
-    LEFT_ADDRESS_X = 0
-    RIGHT_ADDRESS_X = 7.cm
 
     LOGO_BOX = [450, 40].freeze
-    ADDRESS_BOX = [90.mm, 60].freeze
+    ADDRESS_BOX = [58.mm, 60].freeze
     SHIPPING_INFO_BOX = [ADDRESS_BOX.first, 24].freeze
 
     delegate :group, to: 'letter'
@@ -25,7 +23,7 @@ class Export::Pdf::Messages::Letter
         stamped :render_shipping_info
 
         pdf.move_down 4.mm # 3mm + 1mm from text baseline, according to post factsheet
-        render_address(recipient.address)
+        render_address(recipient)
 
 
       end
@@ -49,40 +47,18 @@ class Export::Pdf::Messages::Letter
     end
 
     def render_logo_right(width: LOGO_BOX.first, height: LOGO_BOX.second)
-      left = bounds.width - width
-      bounding_box([left, cursor], width: width, height: height) do
-        if logo_path
-          image(StringIO.open(logo_path.download),
-                logo_options(width, height))
-        else
-          ''
-        end
-      end
+      Export::Pdf::Logo.new(
+        pdf,
+        logo_attachment,
+        image_width: [width, bounds.width].min,
+        image_height: height,
+        position: :right
+      ).render
     end
 
-    def logo_options(box_width, box_height)
-      opts = { position: :right }
-      if logo_exceeds_box?(box_width, box_height)
-        opts[:fit] = [box_width, box_height]
-      end
-      opts
-    end
-
-    def logo_exceeds_box?(box_width, box_height)
-      width, height = logo_dimensions
-      width > box_width || height > box_height
-    end
-
-    def logo_dimensions
-      logo_path.analyze unless logo_path.analyzed?
-      metadata = logo_path.blob.metadata
-
-      [metadata[:width], metadata[:height]]
-    end
-
-    def render_address(address, width: ADDRESS_BOX.first, height: ADDRESS_BOX.second)
+    def render_address(recipient, width: ADDRESS_BOX.first, height: ADDRESS_BOX.second)
       bounding_box([0, cursor], width: width, height: height) do
-        text sanitize(address)
+        text recipient.address
       end
     end
 
@@ -116,14 +92,12 @@ class Export::Pdf::Messages::Letter
       letter.own? && letter.pp_post.to_s.strip.blank?
     end
 
-    def logo_path
+    def logo_attachment
       logo_path_setting(group) || logo_path_setting(group.layer_group)
     end
 
     def logo_path_setting(group)
-      setting = group.settings(:messages_letter)
-
-      setting.picture if setting.picture.attached?
+      group.letter_logo if group.letter_logo.attached?
     end
 
     def sender_address

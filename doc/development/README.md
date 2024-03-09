@@ -11,7 +11,7 @@ Diese Dokumente beschreiben verschiedene Aspekte, welche bei der Entwicklung zu 
 * [Guidelines](03_guidelines.md)
 * [Wagons](04_wagons.md)
 * [CI/CD](06_ci_cd.md)
-* [Frontend & Assets](09_webpacker.md)
+* [Frontend & Assets](09_frontend.md)
 
 Alle Diagramme werden mit [Draw.io](https://draw.io) erstellt und jeweils als Original .xml sowie als .svg abgespeichert.
 
@@ -39,7 +39,7 @@ These documents describe different aspects that need to be considered when devel
 
 ## Contents
 
-* [Development environment](01_setup.md)
+* [Development environment](01_basics.md)
 * [Deployment](02_deployment.md)
 * [Guidelines](03_guidelines.md)
 * [Wagons](04_wagons.md)

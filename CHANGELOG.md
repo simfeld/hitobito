@@ -1,7 +1,64 @@
 # Hitobito Changelog
 
+## unreleased
+
+*  Rechnungen können neu auch den Status "Teilzahlung" und "Überzahlung" haben (hitobito_sww#38)
+*  Einverständnis Erziehungsberechtigte für Selbstregistrierung (hitobito#2404)
+*  Listen von Rechnungen können nach letztem Zahlungseingang und nach insgesamt bezahltem Betrag sortiert werden (hitobito_sww#147)
+*  Zahlungen welche nicht einer Rechnung zugewiesen werden konnten, können auf der Seite "Einzelrechnungen" als CSV exportiert werden (#1494)
+*  Das Familienmitglieder-Feature kann jetzt via Settings im Wagon komplett ausgeschaltet werden
+*  Upgrade auf Ruby 3.2 (#2242)
+
+## Version 2.0
+
+*  Im Personen Tab "Abos" werden die Abos neu nach der Ebene gruppiert und angezeigt (#2337)
+*  Auf Abos gibt es neue Optionen im Bereich der selbstständigen Anmeldung. Zusätzlich zu den bisherigen Optionen (niemand kann sich selber anmelden oder beliebige Personen können sich fürs Abo anmelden) gibt es neu die Option "Nur konfigurierte". Ist diese aktiviert, dann können sich nur Personen mit passenden Gruppen/Rollen oder Anlässen für das Abo anmelden. In diesem Modus gibt es ausserdem die Möglichkeit, zwischen Opt-In und Opt-Out zu wählen: Beim neuen Modus Opt-In ist standardmässig niemand fürs Abo angemeldet, und die Gruppen/Rollen und Anlässe dienen ausschliesslich dazu, die erlaubte Zielgruppe für Opt-Ins festzulegen. Opt-Out ist der Modus wie es bisher funktionierte (#2334)
+*  Nachdem Erstellen einer Person wird sogleich auf mögliche Duplikate geprüft (#2350)
+*  Rollen mit Start-Datum in der Zukunft können erfasst werden (#2237)
+*  Eigener JSON:API Endpoint für Gruppen (#2243)
+*  Personendaten können basierend von Spezifikationen im Wagon automatisiert gelöscht werden. Standardmässig abgestellt (#2106)
+*  Rollen können mit dem class attribute `terminatable` markiert werden, damit sie von der Person selbstständig beendet werden können (hitobito_sac_cas#133)
+*  Die Bemerkungen einer Anlassteilnahme können automatisiert nach einer gewissen Zeit gelöscht werden. Standardmässig abgestellt (#2129)
+*  Personendaten können manuell im "Ohne Rollen" Tab einer Ebene permanent gelöscht werden. (#2105)
+*  Personen die sich über einen konfigurierbaren Zeitraum nicht eingeloggt haben, können gewarnt und automatisch gesperrt werden (#2069)
+
+
+## Version 1.31
+
+*  Umstellung auf Ruby 3
+
+## Version 1.30
+
+*  Der Buchungsbeleg berücksichtigt neu keine Rechnungen mit dem Status "Storniert" (hitobito_sww#136)
+*  Im Gruppen-Log werden neu auch Änderungen an der Gruppe selber aufgezeichnet (hitobito_sac_cas#73)
+*  Das Feld "Gestellt am" einer Rechnung oder Sammelrechnung kann neu auch manuell gesetzt werden (hitobito_sww#135)
+*  Der Gruppen-Tab "Einstellungen" wurde entfernt und die Optionen sind neu in der Bearbeitungsansicht der Gruppe unter dem Tab "Abos" (#2165)
+*  Einführung von Gruppen-Attributen sowie Migration der Gruppen-Einstellungen (#2165)
+*  Sammelrechnungen können neu gelöscht werden (#1387)
+*  Neu gibt es für Gruppen mit aktivierter Selbstregistrierung eine Seite, über welche sich eingeloggte Personen
+   in der Gruppe einschreiben können (#2180)
+*  Logo kann auf Rechnungen angezeigt werden (#hitobito_sww#144)
+    - konfigurierbar pro Layer
+    - links oder rechts
+
+## Version 1.30
+
+*  Die JSON:API liefert für Personen neu auch die Sprache (#2104)
+*  Der Sicherheits-Tab einer Person kann neu die Gruppen und Rollen, welche `:show_details` Zugriff auf einem haben, auflisten. Merci @cdn64! (hitobito_pbs#257)
+*  Auf der Personen-Listenansicht können neu via Multiselekt Personen als Abonnenten einem Abo hinzugefügt werden (#2110)
+
 ## Version 1.28
 
+*  Neu gibt es eine Option, um die Mailadressen von Personenlisten in einem Format spezifisch für Outlook zu exportieren. Merci @simfeld! (#2043)
+*  Diverse Verbesserungen bei Anlass-Einladungen. Personen die im ganzen Layer Berechtigungen haben, können auch in Anlässen des ganzen Layers andere Personen einladen. Ein neuer Hinweis erklärt, dass die Einladungen nicht per Mail versendet werden. Einladungen können neu sortiert und gelöscht werden, dafür nicht mehr doppelt erfasst. Wenn man eine Einladung ablehnt, wird einem das weiterhin zur Information angezeigt. Merci @nchiapol! (#2045, #2051)
+*  Tags auf Anlässen können jetzt von denselben Personen entfernt werden, die sie auch erfassen können. Merci @davudevren! (#2050)
+*  Das Profilbild einer Person kann neu via Klick gross angezeigt werden. Merci @bergerar! (#2044)
+*  Die Rechnungsliste einer Sammelrechnung zeigt neu standardmässig nicht mehr Rechnungen vom aktuellen Jahr, sondern alle Rechnungen seit Erstellung der Sammelrechnung an. Merci @lukas-buergi! (#2047)
+*  Die Zwei-Faktor-Authentisierung ist jetzt etwas kulanter, wenn man den Code knapp zu spät eingibt, sowie bei der Verwendung von Hardware OTP Keys. Merci @cleverer! (#2052)
+*  Die Ansicht um Zwei-Faktor-Authentisierung einzurichten wurde für Mobile optimiert, und man kann die Zwei-Faktor-Authentisierung jetzt auch einrichten, ohne den QR-Code zu scannen, indem man das Secret kopiert. Merci @TeamBattino! (#2046)
+*  Rollen können neu als `self.basic_permissions_only = true` markiert werden. Dies führt zu eingeschränkten Ansichten und Berechtigungen für die betroffene Person (sww#120)
+*  Die E-Mail, welche bei der "Passwort vergessen" Funktion gesendet wird, ist neu übersetzt.
+*  Geburtstag und Geschlecht tauchen nicht mehr doppelt im "Spaltenauswahl"-Export von Personenlisten auf
 *  Fonts werden direkt von Hitobito ausgeliefert (#1632)
 *  Die Vorbedingungen einer Kursart können neu als "Muss gültig sein" oder "Muss gültig oder weggefallen sein" deklariert werden. Wenn die Vorbedingung gültig sein muss verhält es sich wie bisher, bei gültig oder weggefallen muss der Teilnehmer die Qualifikation der Vorbedingung besitzen oder jemals besessen haben. Dies gilt unabhängig von der Gültigkeit oder Reaktivierbarkeit der besagten Qualifikation. (#1640)
 *  Neuer Personentab "Sicherheit", welcher Informationen und Vorgänge zu Sicherheitsmassnahmen aufzeigt und das Passwort einer Person zurücksetzen lässt (benötigt :update Permission auf Person) (#1688)
@@ -27,7 +84,7 @@
 *  Personen mit layer_full oder layer_and_below_full können neu Personen, welche in ihren Ebenen unter "Ohne Rollen" erscheinen, per globale Suchfunktion finden und anzeigen. (hitobito_sww#80)
 *  Anbindung an Nextcloud möglich (#1854)
 *  Rechnungen werden neu in einem Hintergrundprozess gedruckt (#2014)
-* Auf dem Buchungsbeleg sind die einzelnen Positionen nun verlinkt und führen auf eine Auflistung aller Rechnungen, welche die jeweilige Position beinhalten (hitobito_sww#69) 
+*  Auf dem Buchungsbeleg sind die einzelnen Positionen nun verlinkt und führen auf eine Auflistung aller Rechnungen, welche die jeweilige Position beinhalten (hitobito_sww#69)
 
 
 ## Version 1.27

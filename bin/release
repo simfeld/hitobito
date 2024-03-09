@@ -1,0 +1,45 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+#  Copyright (c) 2020-2023, Puzzle ITC. This file is part of
+#  hitobito and licensed under the Affero General Public License version 3
+#  or later. See the COPYING file at the top-level directory or at
+#  https://github.com/hitobito/hitobito.
+
+begin
+  require 'cmdparse'
+rescue LoadError
+  abort(<<~MESSAGE)
+    Please install "cmdparse" to run this
+  MESSAGE
+end
+
+require_relative '../lib/release/update_command' # lib/release/update_command.rb
+
+# basic setup
+parser = CmdParse::CommandParser.new(handle_exceptions: true)
+parser.main_options.program_name = 'release'
+parser.main_options.version = '1.1.0'
+parser.main_options.banner = 'Prepare the release for a hitobito-composition (core and selected wagons)'
+
+# global options
+parser.global_options do |opt|
+  opt.on('-n', '--dry-run', "Do not execute anything") do
+    parser.data[:dry_run] = true
+  end
+
+  opt.on('-c', '--command-list', "Show commands that would be executed, implies dry-run") do
+    parser.data[:command_list] = true
+  end
+end
+
+# built-in commands
+parser.add_command(CmdParse::HelpCommand.new)
+parser.add_command(CmdParse::VersionCommand.new)
+
+# custom commands
+parser.add_command(Release::UpdateCommand.new('integration', :update_integration))
+parser.add_command(Release::UpdateCommand.new('production', :update_production))
+
+# ... and go
+parser.parse

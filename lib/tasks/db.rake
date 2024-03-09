@@ -19,6 +19,13 @@ namespace :db do
     Rake::Task['delayed_job:schedule'].invoke
   end
 
+  namespace :migrate do
+    desc 'Display status of migrations including the originating wagon name'
+    task :status_all do
+      Rake::Task['wagon:migrate:status'].invoke
+    end
+  end
+
   desc 'Rebuild Nested-Set'
   task rebuild_nested_set: [:environment] do
     puts 'Rebuilding nested set...'
@@ -92,5 +99,21 @@ namespace :db do
     ActiveRecord::InternalMetadata[LocationSeeder::SEED_MARKER] = nil
 
     puts 'Done.'
+  end
+
+  namespace :structure do
+    desc "Dumps the structure.sql without having to change \
+          schema_format in config/application.rb. Used by bin/wagon."
+    task dump_sql: :environment do
+      ActiveRecord::Base.schema_format = :sql
+      Rake::Task['db:schema:dump'].invoke
+    end
+
+    desc "Loads the structure.sql without having to change \
+          schema_format in config/application.rb. Used by bin/wagon."
+    task load_sql: :environment do
+      ActiveRecord::Base.schema_format = :sql
+      Rake::Task['db:schema:load'].invoke
+    end
   end
 end

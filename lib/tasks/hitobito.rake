@@ -9,13 +9,35 @@ namespace :hitobito do
   desc 'Print all groups, roles and permissions'
   task roles: :environment do
     Role::TypeList.new(Group.root_types.first).each do |layer, groups|
-      puts '* ' + layer
+      puts "    * #{layer}"
       groups.each do |group, roles|
-        puts '  * ' + group
+        puts "      * #{group}"
         roles.each do |r|
-          puts "    * #{r.label}: #{r.permissions.inspect}"
+          twofa_tag = '2FA ' if r.two_factor_authentication_enforced
+          puts "        * #{r.label}: #{twofa_tag}#{r.permissions.inspect}"
         end
       end
+    end
+  end
+
+  namespace :roles do
+    task update_readme: :environment do
+      stdout, _stderr, status = Open3.capture3('rake app:hitobito:roles')
+      raise 'failed to generate role docs with `rake app:hitobito:roles`' unless status.success?
+
+      roles = "#{stdout}\n(Output of rake app:hitobito:roles)"
+      start_tag = '<!-- roles:start -->'
+      end_tag = '<!-- roles:end -->'
+      pattern = /#{start_tag}(.*)#{end_tag}/m
+      readme_contents = File.read('README.md').strip
+
+      updated_contents = if pattern.match?(readme_contents)
+                           readme_contents.gsub(pattern, "#{start_tag}\n#{roles}\n#{end_tag}")
+                         else
+                           "#{readme_contents}\n\n#{start_tag}\n#{roles}\n#{end_tag}\n"
+                         end
+
+      File.write('README.md', updated_contents)
     end
   end
 
@@ -57,5 +79,26 @@ namespace :hitobito do
         puts '✅ OAuth configured'
       end
     end
+  end
+
+  desc 'Parse Structure and output classes and translations'
+  task :parse_structure, [:filename] do |_t, args| # rubocop:disable Rails/RakeEnvironment
+    require_relative '../../app/domain/structure_parser'
+    args.with_defaults({
+                         filename: './structure.txt'
+                       })
+
+    file = Pathname.new(args[:filename]).expand_path
+    puts "-------- Parsing #{file}"
+
+    parser = StructureParser.new(file.read, common_indent: 0, shiftwidth: 4, list_marker: '-')
+    puts parser.inspect
+    parser.parse
+
+    puts '-------- Groups and Roles as classes ------'
+    puts parser.output_groups
+    puts '-------- Translations for those -----------'
+    puts parser.output_translations
+    puts '-------- Done.'
   end
 end

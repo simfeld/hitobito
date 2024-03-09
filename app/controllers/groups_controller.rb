@@ -12,13 +12,18 @@ class GroupsController < CrudController
   # Respective group attrs are added in corresponding instance method.
   self.permitted_attrs = Contactable::ACCESSIBLE_ATTRS.dup + [
     :logo,
+    :letter_logo,
     :nextcloud_url,
     :privacy_policy,
     :privacy_policy_title,
     :remove_logo,
+    :remove_letter_logo,
     :remove_privacy_policy,
     :self_registration_notification_email,
     :self_registration_role_type,
+    :self_registration_require_adult_consent,
+    :main_self_registration_group,
+    :custom_self_registration_title
   ]
 
   # required to allow api calls
@@ -28,6 +33,7 @@ class GroupsController < CrudController
 
   before_render_show :active_sub_groups, if: -> { html_request? }
   before_render_form :load_contacts
+  after_save :update_main_self_registration_group
 
   def index
     flash.keep if html_request?
@@ -40,6 +46,16 @@ class GroupsController < CrudController
         render json: GroupSerializer.new(entry.decorate, controller: self)
       end
     end
+  end
+
+  def update
+    new_attr_value = permitted_params[:main_self_registration_group].present?
+    if entry.main_self_registration_group != new_attr_value
+      # only people with `set_main_self_registration_group` ability may update this attribute
+      authorize!(:set_main_self_registration_group, entry)
+    end
+
+    super
   end
 
   def destroy
@@ -67,6 +83,14 @@ class GroupsController < CrudController
 
   private
 
+  def update_main_self_registration_group
+    return unless FeatureGate.enabled?('groups.self_registration') &&
+      entry.saved_change_to_main_self_registration_group? &&
+      entry.main_self_registration_group
+
+    Group.where.not(id: entry.id).update_all(main_self_registration_group: false)
+  end
+
   def build_entry
     type = model_params && model_params[:type]
     group = Group.find_group_type!(type).new
@@ -77,8 +101,12 @@ class GroupsController < CrudController
   def permitted_attrs
     attrs = entry.class.used_attributes.dup
     attrs += self.class.permitted_attrs
+    attrs += entry.class.mounted_attr_names
     if entry.class.superior_attributes.present? && !can?(:modify_superior, entry)
       attrs -= entry.class.superior_attributes
+    end
+    if entry.static_name
+      attrs -= [:name, :short_name]
     end
     attrs
   end

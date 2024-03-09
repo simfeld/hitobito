@@ -13,6 +13,7 @@ de:
         other: Bottom Layer
         long: Bottom Layer Long
       group/bottom_group: Bottom Group
+      group/mounted_attrs_group: Mounted Attrs Group
       group/global_group: Global Group
 
       group/top_layer/top_admin: Admin
@@ -21,6 +22,7 @@ de:
       group/top_group/local_guide: Local Guide
       group/top_group/local_secretary: Local Secretary
       group/top_group/member: Member
+      group/top_group/invisible_people_manager: Invisible People Manager
       group/bottom_layer/leader: Leader
       group/bottom_layer/local_guide: Local Guide
       group/bottom_layer/member: Member
@@ -35,3 +37,13 @@ de:
         kinds:
           parent: Elternteil
           child: Kind
+      group/top_layer:
+        shirt_sizes:
+          s: S
+          l: L
+          xl: XL
+  mounted_attributes:
+    form_tabs:
+      group/top_layer:
+        default: Top Layer Attribute
+        custom_cat: Eigene Kategorie

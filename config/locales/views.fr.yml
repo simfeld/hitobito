@@ -14,6 +14,7 @@ fr:
     chosen_no_results: Aucun résultat avec
     selected: Sélectionné
     columns: Colonnes
+    start_on: à partir de %{date}
     gender:
       male: Masculin
       female: féminin
@@ -94,10 +95,13 @@ fr:
       flash:
         success: "%{model} a été effacé avec succès."
         failure: "%{model} n'a pas pu être effacé."
+  blocked:
+    index:
+      title: Login bloqué
   contactable:
     address_or_email: "%{address} ou %{email}"
     fields:
-      zip_town: Code postal / Lieu
+      zip_town: NPA, localité
     public_check_box:
       tooltip: Les entrées privées ne sont visibles qu'au sein du groupe auquel tu appartiens. Les responsables d'autres groupes peuvent voir les entrées identifiées en tant qu'entrées publiques si toi-même, tu fais partie d'une maîtrise.
     social_account_fields:
@@ -122,6 +126,8 @@ fr:
     xlsx: Excel
   dropdown/event/role_add:
     add: 'Ajouter une personne'
+  dropdown/event/invitation_add:
+    add: 'Inviter une personne'
   dropdown/event/participant_add:
     as: 'en tant que %{role}'
   dropdown/group_edit:
@@ -136,6 +142,7 @@ fr:
     labels: 'Etiquettes'
     pdf: 'PDF'
     emails: 'Adresses électroniques'
+    emails_outlook: 'Adresses électroniques (Outlook)'
     addresses: 'Liste d''adresses'
     households: 'Liste des foyers'
     everything: 'Toutes les informations'
@@ -147,6 +154,7 @@ fr:
     activate_totp: Configurer la validation en deux étapes
     reset_totp: Réinitialiser la validation en deux étapes
     disable_totp: Désactiver la validation en deux étapes
+    unblock_person: Débloquer le login
   dropdown/invoices:
     download: 'Exporter'
     print: 'Imprimer'
@@ -165,6 +173,8 @@ fr:
   dropdown/letter_with_invoice:
     print: Imprimer
     letters_with_invoice: Factures
+  dropdown/letter_with_invoice_new:
+    invoice: 'Facture normale'
   dropdown/invoices/evaluation:
     download: 'Exporter'
     csv: 'CSV'
@@ -188,6 +198,7 @@ fr:
       new:
         sign_in: Inscription
       form:
+        login_identity: Adresse e-mail principale
         sign_in: Inscription
       oauth_info:
         sign_in: 'Se connecter avec %{name}'
@@ -241,6 +252,12 @@ fr:
           footer: 'Ce message a été envoyé par Hitobito'
       reset_password_instructions:
         subject: 'Instructions pour initialiser ton mot de passe'
+        body:
+          greeting: 'Salut %{name}!'
+          reset_instructions:
+            with_password: 'Tu peux réinitialiser ton mot de passe pour %{application_name} en cliquant sur le lien suivant.'
+            without_password_html: 'Bienvenue chez %{application_name}! Tu as été nouvellement enregistré et tu as reçu un login.<br>Veuillez définir un mot de passe sous le lien suivant.'
+          ignore_information_html: 'Si tu ne veux pas changer ton mot de passe, tu peux ignorer cet e-mail.<br><br>Ton mot de passe ne changera pas sans que tu ailles sur le lien ci-dessus et que tu y donnes un nouveau mot de passe.'
       unlock_instructions:
         subject: 'Instructions pour débloquer ton compte'
         body:
@@ -250,6 +267,12 @@ fr:
           footer: 'Ce message a été envoyé par Hitobito'
   errors:
     link_to_main: 'Page principale'
+    '401':
+      title: 'Login nécessaire'
+      explanation: 'Tu dois te connecter avant de pouvoir accéder à cette ressource.'
+    '403':
+      title: 'Accès refusé'
+      explanation: 'Tu n''es pas autorisé·e à accéder à cette ressource.'
     '404':
       title: 'Cette page n''existe pas (404)'
       explanation: 'L''adresse entrée est erronée ou la page a été effacée.'
@@ -260,12 +283,6 @@ fr:
       title: 'Nous présentons nos excuses, cette page n''est pas disponible pour le moment (503)'
       explanation: 'Nous travaillons sur cette page, c''est pourquoi elle n''est pas disponible. Ceci ne devrait pas durer très longtemps.'
       instruction: 'Prière de réessayer plus tard.'
-    '403':
-      title: 'Accès refusé'
-      explanation: 'Tu n''es pas autorisé·e à accéder à cette ressource.'
-    '401':
-      title: 'Login nécessaire'
-      explanation: 'Tu dois te connecter avant de pouvoir accéder à cette ressource.'
     unsupported_page_size:
       title: 'La taille de la page n''est pas supportée'
       explanation: 'La taille de page demandée page[size]=%{size} est plus grande que la taille de page maximale %{max}. '
@@ -313,7 +330,6 @@ fr:
     kinds:
       form:
         help_minimum_age: 'ans (selon année de naissance au premier jour du cours)'
-        help_select_qualifications: 'On peut sélectionner plusieurs types de qualifications en cliquant dessus tout en maintenant la touche <Ctrl> enfoncée.'
         qualifications:
           for_participants: 'Qualifications des participants'
           for_leaders: 'Qualifications des responsables'
@@ -369,6 +385,9 @@ fr:
         incomplete: des indications obligatoires manquent
       cancel_application:
         explanation: Tu es déjà inscrit-e à cet évènement.
+        pending: ' 
+
+          Vous êtes pré-inscrit à cet événement. L''inscription n''est pas définitive et doit être confirmée par la direction de l''événement.'
         waiting_list: Tu es sur la liste d'attente pour cet événement.
         caption: Désinscrire
         confirmation: "Es-tu sûr/sure de vouloir annuler ton inscription à cet évènement?"
@@ -415,6 +434,8 @@ fr:
       title: Validation en deux étapes
       hint_registered_html: "Saisis le code affiché dans ton application Authenticator pour confirmer ton identité."
       hint_unregistered_html: "Scanne le QR code avec ton smartphone à l'aide de l'application Authenticator et saisis le code affiché pour activer l'authentification à double facteur. Tu n'as pas encore installé l'application Authenticator ? Nous te le recommandons %{link}"
+      copy_secret: "ici"
+      hint_copy_secret_html: "Si tu veux copier directement la clé 2FA, tu peux cliquer sur %{link} pour la copier."
     form:
       totp_code: Code à usage unique
       totp_code_placeholder: Saisir le code à 6 chiffres
@@ -446,6 +467,8 @@ fr:
       buttons:
         accept: Inscription
         decline: Désinscription
+    banner_declined_invitation:
+      explanation: Tu as été invité·e à cet événement et tu as annulé ton inscription.
     default_description_link:
       insert_general_information: Placer une description standard
     form:
@@ -456,6 +479,7 @@ fr:
       times_are_optional: L'heure est optionnelle.
       explain_application_questions: Ici, tu peux demander des informations supplémentaires pour les inscriptions.
       explain_choices: Laissez vide pour la réponse en texte libre, une ou plusieurs options de réponse (séparées par des virgules) pour la sélection.
+      explain_admin_questions: Ici, vous pouvez définir d'autres informations par participant, qui ne sont utilisées que pour la gestion des événements.
       explain_contact_attrs: Tu peux choisir les coordonnées requises pour l'inscription.
       caption_applications_cancelable: Les participants peuvent se désinscrire eux-mêmes.
       caption_display_booking_info: Le nombre d'inscrits et de places libres est visible pour tous sur la liste de cours.
@@ -481,6 +505,8 @@ fr:
       participants: 'Participants'
     export_enqueued: 'l''exportation débute en arrière-plan et est téléchargée quand elle est terminée'
     add_tag: Rajouter tag
+    invitations:
+      description: 'Les personnes invitées peuvent s''inscrire ou se désinscrire via le site %{model_name}. Elles ne recevront pas de mail automatique.'
   event/applications:
     approved: 'L''inscription a été autorisée.'
     rejected: 'L''inscription a été refusée.'
@@ -502,6 +528,7 @@ fr:
     instructions: 'Pour l''inscription définitive, tu dois imprimer cette page en utilisant l''option <i>imprimer</i>, puis la signer et l''envoyer par poste à l''adresse indiquée.'
     export_enqueued: 'l''exportation débute en arrière-plan et est téléchargée quand elle est terminée'
     waiting_list: 'Toutes les places sont actuellement prises, l''inscription est sur la liste d''attente.'
+    pending: ' Une pré-entrée a été créée pour  %{full_entry_label}. La participation n''est pas encore définitive et doit être confirmée par la direction de l''événement.'
     show:
       link:
         delete: 'Effacer l''inscription'
@@ -584,6 +611,9 @@ fr:
       flash:
         success: Le groupe a été archivé avec succès.
         failure: Une erreur est survenu lors de l'archivage du groupe.
+    deleted_people:
+      list:
+        manual_deletion: Suppression des données
     merge:
       select:
         title: 'fusionner %{group}'
@@ -632,7 +662,11 @@ fr:
       no_deleted_sub_groups: 'Pas de groupes effacés.'
     form:
       help_contact: 'Utiliser l''adresse et le numéro de téléphone public de cette personne'
+      help_main_self_registration_group: 'Afficher le lien d''inscription de ce groupe sur la page de connexion principale.'
       hint_external_registration: 'Aucun rôle avec droit d''écriture ne peut être choisi'
+    form_tabs:
+      general: 'Généralités'
+      messages: 'Messages'
     global:
       link:
         add: Créer un groupe
@@ -655,10 +689,26 @@ fr:
       distribution: Répartition
     self_registration:
       form:
+        main_person_title: Données personnelles
         privacy_policy_caption: "J'accepte les conditions suivantes:"
+        submit: Créer un compte
+        has_account: Tu as déjà un compte?
+        to_login_page: Enregistrer et s'inscrire
+      main_person:
+        notes: Commentaires
       create:
+        email_taken: L'e-mail est déjà utilisé. Connecte-toi ou enregistre-toi avec une autre adresse e-mail.
         flash:
           privacy_policy_not_accepted: Pour terminer l'inscription, il faut accepter la déclaration de protection des données.
+    self_inscription:
+      new:
+        role_exists: Tu as déjà ce rôle dans ce groupe.
+        disabled: L'enregistrement externe est désactivé pour ce groupe
+      create:
+        role_saved: Le rôle a été enregistré avec succès
+      form:
+        inscribe: Inscription
+        description: Ici, tu peux t'inscrire au groupe.
   group/deleted_people:
     list:
       confirm_delete: "Toutes les données sur %{person} vont être définitivement effacées, y compris les participations et les qualifications. N'efface cette personne que si personne n'aura jamais plus besoin de ces données. "
@@ -698,6 +748,7 @@ fr:
       to: à
   import/csv_parser:
     read_error: "Erreur lors de la lecture de %{filename}: %{error}"
+    encoding_error: "Malheureusement, l'encodage n'a pas pu être reconnu. Est-ce un fichier binaire ?"
     contains_no_data: "Ne contient pas de données"
     read_success:
       one: "%{count} entrée lue avec succès."
@@ -726,7 +777,10 @@ fr:
     destroy:
       flash:
         success: Facture annulée
+    actions_show:
+      confirm_cancel: ' Voulez-vous vraiment annuler cette facture?'
     pdf:
+      amount_open: Montant en suspens
       total: montant total
       total_vat: TVA
       cost: 'Montant '
@@ -735,6 +789,7 @@ fr:
       due_at: Échue le
       creator: Auteur de la facture
       vat_number: No TVA
+      payment: Paiement reçu
       payment_slip_qr:
         receipt_title: Récépissé
         payment_title: Section paiement
@@ -762,10 +817,15 @@ fr:
         filter:
           from: De
           to: Au
+  invoices/by_article:
+    index:
+      title: 'Factures pour l''article "%{name}"'
+      subtitle: 'Compte: "%{account}", Centre de coût: "%{cost_center}", %{from} – %{to}'
   invoice_configs:
     form_tabs:
       general: général
       email: Courriel
+      layout: Layout
     update:
       flash:
         success: Les réglages de la factures mis à jour avec succès
@@ -785,12 +845,18 @@ fr:
       donation_increase_percentage_explanation: Pourcentage pour le calcul des dons
     email_fields:
       email_help: Les réponses à des e-mails concernant les factures doivent être envoyées à l'adresse de l'utilisateur.rice actuel.le ou à l'adresse configurée ici.
+      email_validation: Ne doit pas être une adresse e-mail.
       sender_name_help: Les e-mails de facturation sont envoyés sous ce nom.
     reminder_fields:
       third_level: 'Pour tous les rappels suivants, les données du troisième rappel sont reprises.'
     provider_fields:
       reset_payment_provider_warning: 'En cas de modification de données ici, il est nécessaire de refaire le processus d''initialisation de l''interface de facturation.'
   invoice_lists:
+    destroys:
+      show:
+        title: Supprimer une facture collective
+        non_draft_info: 'La facture collective contient au moins une facture qui n''a ni le statut "Brouillon" ni le statut "Annulé". La facture collective ne peut donc pas être supprimée.'
+        confirm_delete: Voulez-vous vraiment supprimer la facture collective?
     form:
       invoice_articles:
         variable_donation:
@@ -857,38 +923,6 @@ fr:
     create:
       flash:
         success: La facture supérieur à %{amount} saisie.
-  payment_processes:
-    description:
-      header: Fichier camt.054 XML
-      explain_xml_format: 'Une donnée camt.054 XML est la dissolution de l''écriture récapitulative et l''avis de débit et de note de crédit. Celle-ci contient une série de différentes écritures comptables qui sont classées automatiquement sur la base des factures dépendant du numéro ESR.'
-    invalid_file: La donnée téléchargée n'est pas valable.
-    parsing_error: La donnée téléchargée ne peut pas être retravaillée (%{error}).
-    created: '%{count} paiements ont été saisis.'
-    payments:
-      valid:
-        one: '%{count} de paiements valables ont été reconnus'
-        many: '%{count} paiements ont été reconnus valables.'
-        other: '%{count} paiements ont été reconnus valables.'
-      invalid:
-        one: '%{count} de paiements non-valables ont été reconnus'
-        many: '%{count} paiements ont été reconnus non-valables.'
-        other: '%{count} paiements ont été reconnus non-valables.'
-    show:
-      payments_with_invoice: Paiements allouables
-      payments_with_invoice_and_dates: Paiements allouables du %{from} au %{to}
-      payments_without_invoice: pas attribuable
-      amount_open: ouvert
-      create:
-        zero: importer le paiement
-        one: importer le paiement
-        other: 'importer %{count} paiements.'
-      icon_tooltip_invoice_missing: Ne peut être attribué à aucune facture
-      icon_tooltip_settles: Règle la facture ouverte
-      icon_tooltip_exceeds: Dépasse la facture ouverte %{difference}
-      icon_tooltip_undercuts: Est en-dessous de la facture ouverte de %{difference}
-    new:
-      upload_button: 'télécharger'
-      xml_file: 'Fichier XML'
   label_formats:
     global_labels: "Formats globaux d'étiquettes"
     own_labels: Mes formats d'étiquettes
@@ -907,6 +941,7 @@ fr:
     unauthorized:
       forgot_password: 'Mot de passe oublié?'
       need_confirmation_email: 'Pas reçu de message de confirmation ?'
+      main_self_registration: 'Vous n''avez pas de compte ? Inscrivez-vous ici.'
     footer:
       available_under_license: 'disponible sous'
       developed_by: 'Développé par'
@@ -922,6 +957,12 @@ fr:
       synchronization_failed: 'Une erreur s''est produite lors de l''envoi des données à MailChimp. (%{error}).'
       cancel_synchronization: 'Annuler l''exportation'
   mailing_lists:
+    subscriber_lists:
+      create:
+        success:
+          one: "Une personne a été ajoutée avec succès à l'abonnement '%{mailing_list}"
+          many: "%{count} Des personnes ont été ajoutées avec succès à l'abonnement '%{mailing_list}'."
+          other: "%{count} Des personnes ont été ajoutées avec succès à l'abonnement '%{mailing_list}'."
     global:
       link:
         add: Créer un abo
@@ -935,6 +976,10 @@ fr:
       caption_delivery_report: 'Envoyer l''e-mail avec confirmation à l''expéditeur'
       help_preferred_labels: 'Si disponibles, les e-mails ne sont envoyés qu''aux adresses e-mails avec cette désignation. Ce faisant, les adresses e-mail qui ne sont pas marquées comme adresses d''envoi seront également utilisées.'
       help_mailchimp_sync: 'Les personnes abonnées peuvent être exportées vers la liste MailChimp. Cette action écrase la liste MailChimp et les contacts actuels sont effacés.'
+    form_tabs:
+      general: Général
+      email: Liste de diffusion (e-mail)
+      mailchimp: MailChimp
     imap_mails:
       manage: e-mails
       mailboxes:
@@ -1077,6 +1122,7 @@ fr:
         sender_rejected: L'expéditeur a été supprimé
         unknown_recipient: Destinataire inconnu
         retrieved: Recevoir
+        bounce_rejected: Bounce refusé
     export_enqueued: 'L''export est démarré en arrière-plan et sera téléchargé après complétion.'
     show:
       recipients_empty: La liste de distribution est vide, aucun PDF ne peut être créé.
@@ -1126,6 +1172,31 @@ fr:
     tabs:
       grants: Autorisations
       tokens: Token d'accès
+  payment_processes:
+    description:
+      header: Fichier camt.054 XML
+      explain_xml_format: 'Une donnée camt.054 XML est la dissolution de l''écriture récapitulative et l''avis de débit et de note de crédit. Celle-ci contient une série de différentes écritures comptables qui sont classées automatiquement sur la base des factures dépendant du numéro ESR.'
+    invalid_file: La donnée téléchargée n'est pas valable.
+    parsing_error: La donnée téléchargée ne peut pas être retravaillée (%{error}).
+    created: '%{count} paiements ont été saisis.'
+    payments:
+      invalid:
+        one: '%{count} de paiements non-valables ont été reconnus'
+        many: '%{count} paiements ont été reconnus non-valables.'
+        other: '%{count} paiements ont été reconnus non-valables.'
+    show:
+      amount_open: ouvert
+      create:
+        zero: importer le paiement
+        one: importer le paiement
+        other: 'importer %{count} paiements.'
+      icon_tooltip_invoice_missing: Ne peut être attribué à aucune facture
+      icon_tooltip_settles: Règle la facture ouverte
+      icon_tooltip_exceeds: Dépasse la facture ouverte %{difference}
+      icon_tooltip_undercuts: Est en-dessous de la facture ouverte de %{difference}
+    new:
+      upload_button: 'télécharger'
+      xml_file: 'Fichier XML'
   qualifications:
     in_years: '%{years} ans'
     valid_until: 'à %{date}'
@@ -1197,19 +1268,22 @@ fr:
         mailing_list:
           approved: "La demande d'accès pour %{person} a déjà été validée. "
           rejected: "La demande d'accès pour %{person} a déjà été refusée. "
+    history:
+      index:
+        inactive_roles_title: 'Rôles inactifs'
     households:
       form:
         address_updated: "Adresse actualisée"
       fields:
         lives_in_household_with: "Habite dans le foyer avec"
-        update_denied: "Pas de droits d'écriture pour %{other_person}"
+        update_denied: "Tu ne peux pas ajouter %{other_person} au foyer. Il se peut que cette personne soit déjà dans le foyer ou que tu n'aies pas les droits d'écriture."
     family:
       fields:
         is_in_family_with: 'Fait partie de la famille de'
     csv_imports:
       description:
         header: Fichiers CSV
-        explain_csv_format: 'Un fichier CSV contient les données d''une personne par ligne. La première ligne comporte les titres des champs. Les champs sont séparés par une virgule. Si un champ contient lui-même des virgules, il doit être entouré de guillemets ("). Exemple :'
+        explain_csv_format: 'Un fichier CSV contient sur chaque ligne les données d''une personne. La première ligne contient les noms des champs. Les différents champs sont séparés par un séparateur ((, ; :) ou Tab). Si une valeur de champ contient elle-même un séparateur, elle doit être complétée par des guillemets ("). Exemple :'
         example: |
             prénom,nom,e-mail,lieu,sexe Jean,Dupont,jean@exemple.ch,Fribourg,m Adèle,Lévêque,adèle@exemple.net,"Genève, New York",f
         explain_field_names: Le choix des champs est libre. Les champs du fichier CSV peuvent être reliés aux champs de l'application lors de la prochaine étape.
@@ -1278,9 +1352,26 @@ fr:
         security_and_privacy: Sécurité et confidentialité
         override_password: "Écraser le mot de passe"
         confirm_reset: "Attention : le mot de passe est alors remplacé. Est-ce vraiment ce que tu veux ?"
+        groups_and_roles_that_see_me: Rôles qui ont accès à moi
+        load_roles_that_see_me: 'Télécharger les groupes et les rôles'
+        load_roles_that_see_me_hint: 'Cela peut prendre quelques secondes'
+        block_person: Bloquer le login
+        confirm_block_person: "Attention : tu vas empêcher cette personne de se connecter. Est-ce vraiment ce que tu veux?"
+        unblock_person: Débloquer le login
+        confirm_unblock_person: "Attention : cette personne va être débloquée. Est-ce vraiment ce que tu veux?"
+        person_blocked: Le login est maintenant bloqué
+        person_not_blocked: Le login n'est maintenant pas bloqué
       password_override:
         flashes:
           success: Le mot de passe a été écrasé. La personne a été informée et peut à tout moment demander un nouveau mot de passe via la fonction "Mot de passe oublié".
+      block_person:
+        flashes:
+          success: Le login a été bloqué avec succès.
+          error: Tu ne peux pas bloquer ton propre login.
+      unblock_person:
+        flashes:
+          success: Le login a été débloqué avec succès.
+          error: Tu ne peux pas débloquer ton propre login.
   person/csv_imports:
     invalid_file: Veuillez choisir un fichier CSV valable.
     duplicate_keys:
@@ -1371,6 +1462,19 @@ fr:
         other: "%{count} autres personnes ne sont pas visibles pour toi."
     log:
       no_changes: Aucun changement enregistré jusqu'à présent.
+    manual_deletions:
+      show:
+        title: "supprimer %{full_name}?"
+        minimize: 'Minimiser la personne'
+        delete: 'Supprimer définitivement la personne'
+        explanation: "Si la personne est supprimée, les données de la personne sont irrémédiablement supprimées. En cas de minimisation, la personne n'est pas supprimée, mais la plupart des données spécifiques à la personne sont supprimées."
+      minimize:
+        success: "%{full_name} a été minimisée avec succès."
+      delete:
+        success: "%{full_name} a été supprimé avec succès."
+      errors:
+        participated_in_recent_event: 'La personne a récemment participé à un événement'
+        already_minimized: 'La personne a déjà été minimisée'
     pdf:
       cannot_fit: Les adresses ne rentrent pas dans le format d'étiquettes défini.
     print:
@@ -1385,6 +1489,7 @@ fr:
         for_someone_else: 'Je confirme que j''ai obtenu le consentement de cette personne ou de son responsable légal pour les dispositions suivantes:'
     roles:
       title: Rôles actifs
+      convertable_title: Rôles futurs
     roles_aside:
       add_role: Ajouter un rôle
       set_main_group: Déterminer le groupe principal
@@ -1394,16 +1499,19 @@ fr:
     export_enqueued: 'L''exportation commence en arrière-plan et sera téléchargé après avoir été complété.'
     export_email_needed: 'Adresse e-mail requise pour l''export.'
     multiselect_actions:
-      remove_role: Retirer rôles
-      move_role: Déplacer rôles
-      add_role: Ajouter rôle
+      role_actions:
+        button: Rôles
+        remove: Enlever les rôles
+        move: Déplacer les rôles
+        add: Ajouter un rôle
       add_participation: Ajouter à l'événement
       tag_lists: Tags
       remove_tags: Enlever les tags
       add_tags: Rajouter des tags
+      add_to_mailing_list: Ajouter à l'abonnement
     totp_reset:
       flashes:
-        success: Validation en deux étapes réinitialisée correctement
+        success: Lors de ta prochaine connexion, tu seras invité à reconfigurer l'authentification à deux facteurs.
     totp_disable:
       flashes:
         success: Validation en deux étapes désactivée correctement
@@ -1413,6 +1521,8 @@ fr:
       login: Le login est activé
       two_factors: Le login avec 2FA est activé
       status_off: Non existant
+      blocked: Bloqué
+      not_blocked: Non bloqué
   participations:
     destroy:
       flash:
@@ -1421,9 +1531,13 @@ fr:
     create:
       flash:
         success: 'L''invitation de %{recipient_name} en tant que %{participation_type} a été créé.'
+    invalid_existing_person: "a déjà été invité à ce %{model_name}."
     decline:
       flash:
         success: L'invitation a été rejetée.
+    destroy:
+      flash:
+        success: 'L''invitation pour %{recipient_name} a été supprimée.'
   people_filters:
     form:
       save_search: Sauvegarder cette recherche
@@ -1449,6 +1563,10 @@ fr:
       equal: est précis
       greater: plus grand que
       smaller: plus petit que
+    language:
+      title: Langue
+      word_connector: 'ou'
+      one_of: La langue est %{languages}
     tag:
       title: Tags
       prompt_tag_selection: Inclure les personnes qui contiennent au moins une des tags ci-dessous
@@ -1495,6 +1613,13 @@ fr:
     create:
       flash:
         success: Tu as été enregistré·e avec succès
+  self_registration_reasons:
+    destroy:
+      foreign_key_error: Certaines personnes utilisent ce motif d'entrée, la suppression n'est donc pas possible.
+  role_decorator:
+    outdated_future_role: 'Le rôle n''a pas pu être activé par %{date} comme souhaité. Si l''enregistrement du rôle ne l''active pas, contacte le support. '
+    outdated_deleted_role: Le rôle n'a pas pu être arrêté le %{date} comme souhaité. Si l'enregistrement du rôle n’y met pas fin, contacte le support.
+    terminates_on: Sortie au %{date}
   roles:
     full_entry_label: '%{model_label} <i>%{role}</i> pour <i>%{person}</i> dans <i>%{group}</i>'
     role_changed: '%{full_entry_label} modifié en <i>%{new_role}</i>.'
@@ -1508,8 +1633,6 @@ fr:
       add_role_for_person: Créer un rôle pour %{person}
       edit_role_for_person: Modifier un rôle pour %{person}
       new_role_for_person: Créer un nouveau rôle
-    fields:
-      help_optional_label: désignation facultative du rôle de cette personne
     person_fields:
       create_new_person: Saisir une nouvelle personne
       search_existing_person: Rechercher une personne existante
@@ -1520,6 +1643,15 @@ fr:
           Le rôle %{role} du groupe %{group} ne peut voir que les données publiques
           (groupes, événements et abonnements; pas d'autres personnes).
       only_visible_from_above: Ce rôle n'est visible que pour les personnes du même niveau, pas pour les personnes d'un niveau supérieur.
+  roles/terminations:
+    global:
+      title: Sortie
+      submit: Sortir
+      warning: Cette opération est irréversible!
+      role:
+        text: Es-tu sûr de vouloir quitter ce groupe?
+    flash:
+      success: Tu es sorti avec succès par %{date}.
   role_lists:
     available:
       no_entries: Aucun rôle à effacer pour vous
@@ -1593,6 +1725,9 @@ fr:
     global:
       link:
         add: Ajouter API-Key
+  steps_component:
+    next_link: Continuer
+    prev_link: Retour
   subscriber:
     group:
       edit:
@@ -1608,6 +1743,15 @@ fr:
     exclude_person:
       form:
         exclude_subscriber: 'Exclure les abonné-e-s'
+    filter:
+      show:
+        title: Conditions globales
+    subscriber_lists:
+      new:
+        title: Ajouter des personnes à l'abonnement
+        mailing_list_search: Rechercher un abonnement
+        submit: Ajouter
+        mailing_lists_in_local_hierarchy_hint: 'Possibilité de sélectionner des abonnements de sur- et sous-groupes du groupe actuel'
   subscriber/base:
     blank: '%{model_label} doit être sélectionné'
     taken: '%{model_label} a déjà été ajouté'
@@ -1615,6 +1759,9 @@ fr:
     success: 'Tu as été ajouté(e) à l''abonnement.'
     failure: 'Tu n''as pas pu être ajouté(e) à l''abonnement: %{errors}'
     unsubscribed: 'Tu as été retiré(e) de l''abonnement avec succès.'
+  subscriber/filter:
+    success: 'Les conditions globales ont été mises à jour avec succès'
+    failure: 'Les conditions globales n''ont pas pu être mises à jour'
   subscriber/exclude_person:
     success: '%{subscriber} a été exclu avec succès'
     failure: '%{subscriber} n''est pas un abonné'

@@ -8,7 +8,7 @@
 module LayoutHelper
 
   def render_nav?
-    current_user&.roles.present? || current_user&.root?
+    (current_user&.roles.present? && !current_user&.basic_permissions_only?) || current_user&.root?
   end
 
   # render a single button
@@ -35,7 +35,7 @@ module LayoutHelper
     @in_button_group = false
   end
 
-  def pill_dropdown_button(dropdown, ul_classes = 'pull-right')
+  def pill_dropdown_button(dropdown, ul_classes = 'float-end')
     dropdown.button_class = nil
     content_tag(:ul, class: "nav nav-pills #{ul_classes}") do
       content_tag(:li, class: 'dropdown') do
@@ -48,7 +48,7 @@ module LayoutHelper
     name = name.to_s.dasherize
 
     if options.fetch(:filled, true)
-      add_css_class(options, "fa fa-#{name}")
+      add_css_class(options, "fas fa-#{name}")
     else
       add_css_class(options, "far fa-#{name}")
     end
@@ -56,11 +56,9 @@ module LayoutHelper
   end
 
   def badge(label, type = nil, tooltip = nil)
-    options = { class: "badge badge-#{type || 'default'}" }
+    options = { class: "badge bg-#{type || 'default'}" }
     if tooltip.present?
-      options.merge!(rel: :tooltip,
-                     'data-html' => 'true',
-                     title: tooltip)
+      options.merge!('data-bs-toggle': 'tooltip', title: tooltip)
     end
     content_tag(:span, label, options)
   end
@@ -132,25 +130,30 @@ module LayoutHelper
     button = action_button(ti(:'link.add'),
                            add_path,
                            'plus',
-                           class: 'btn-small')
-    safe_join([title, content_tag(:span, button, class: 'pull-right')])
+                           class: 'btn-sm')
+    safe_join([title, content_tag(:span, button, class: 'float-end')])
   end
 
   def button(label, url, icon_name = nil, options = {})
     disabled_msg = options.delete(:disabled)
     return disabled_button(label, disabled_msg, icon_name, options) if disabled_msg
 
-    add_css_class options, 'btn'
+    add_css_class options, 'btn btn-sm'
+    add_css_class options, 'btn-outline-primary' unless /(^|\s)btn-(?!sm\b)/.match options[:class]
     url = url.is_a?(ActionController::Parameters) ? url.to_unsafe_h.merge(only_path: true) : url
 
-    link_to(url, options) do
-      button_content(label, icon_name)
+    if url.present?
+      link_to(url, options) do
+        button_content(label, icon_name)
+      end
+    else
+      content_tag(:button, button_content(label, icon_name), options)
     end
   end
 
   def disabled_button(label, disabled_msg, icon_name = nil, options = {})
     content_tag(:div, title: disabled_msg) do
-      content_tag(:a, class: 'btn disabled', **options) do
+      content_tag(:a, class: 'btn btn-sm disabled', **options) do
         button_content(label, icon_name)
       end
     end

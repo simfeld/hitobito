@@ -23,6 +23,14 @@ en:
     updated_info: Changed
     deleted_info: Deleted
     archived_info: Archived
+  activemodel:
+    errors:
+      models:
+        roles/termination:
+          attributes:
+            terminate_on:
+              too_early: "has to be in the future"
+              too_late: "must not be after %{date}"
   activerecord:
     errors:
       messages:
@@ -344,6 +352,7 @@ en:
         title: Title
         description: Description
         state: Status
+        read_at: read at
       cors_origins:
         origin: Host with API access
       person:
@@ -425,6 +434,9 @@ en:
         type_name: Group type
         description: Description
         updated_at: Changed
+        self_registration_role_type: role type
+        nextcloud_url: NextCloud-URL
+        remove_logo: remove current group-logo
       event:
         group_ids: Groups
         groups: Groups
@@ -601,7 +613,6 @@ en:
         string_long: '%{role} in %{group}'
         dates: Dates
         created_at: From
-        deleted_at: To
         class:
           permission:
             description:
@@ -663,7 +674,6 @@ en:
         name: Name
         description: Description
         publisher: Publisher
-        subscribable: Subscribers may subscribe/unsubscribe themselves.
         mail_name: Mailing list address
         mail_address: Mailing list
         mail_address_link: Mailing list
@@ -822,10 +832,6 @@ en:
         payment_slip: Payment slip
         payment_slips:
           qr: QR invoice
-          ch_es: Red payment slip Post (CH)
-          ch_bes: Red payment slip Bank (CH)
-          ch_esr: Orange payment slip Post (CH)
-          ch_besr: Orange payment slip Bank (CH)
           no_ps: None
         participant_number: Participant Nr
         participant_number_internal: Participant Nr internal
@@ -931,9 +937,6 @@ en:
       on_or_before: "must be on or before %{restriction}"
       after: "must be after %{restriction}"
       on_or_after: "must be on or after %{restriction}"
-      extension_whitelist_error: "only accepts the following type of files: %{allowed_types}"
-      dimensions_too_large: "only accepts images with a size smaller than  %{maximum} pixel"
-      filesize_too_large: "can not be bigger than  %{maximum} mb"
       expired: "has expired, please request a new"
       not_found: "not found"
       already_confirmed: "already confirmed"

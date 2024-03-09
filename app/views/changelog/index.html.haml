@@ -1,8 +1,9 @@
--#  Copyright (c) 2012-2022, Jungwacht Blauring Schweiz. This file is part of
+-#  Copyright (c) 2012-2024, Jungwacht Blauring Schweiz. This file is part of
 -#  hitobito and licensed under the Affero General Public License version 3
 -#  or later. See the COPYING file at the top-level directory or at
 -#  https://github.com/hitobito/hitobito.
 
 - title 'Changelog'
 
-!= CommonMarker.render_html(ChangelogReader.changelog_markdown, :DEFAULT)
+%div.changelog
+    != Commonmarker.to_html(ChangelogReader.changelog_markdown)

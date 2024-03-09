@@ -6,7 +6,6 @@
 #  https://github.com/hitobito/hitobito.
 
 class InvoicesController < CrudController
-  include YearBasedPaging
   include Api::JsonPaging
   include RenderMessagesExports
   include AsyncDownload
@@ -16,13 +15,15 @@ class InvoicesController < CrudController
   self.nesting = Group
   self.optional_nesting = [InvoiceList]
 
-  self.sort_mappings = { recipient: Person.order_by_name_statement,
+  self.sort_mappings = { last_payment_at: Invoice.order_by_payment_statement,
+                         amount_paid: Invoice.order_by_amount_paid_statement,
+                         recipient: Person.order_by_name_statement,
                          sequence_number: Invoice.order_by_sequence_number_statement }
   self.remember_params += [:year, :state, :due_since, :invoice_list_id]
 
   self.search_columns = [:title, :sequence_number, 'people.last_name', 'people.first_name',
                          'people.email', 'people.company_name']
-  self.permitted_attrs = [:title, :description, :state, :due_at,
+  self.permitted_attrs = [:title, :description, :state, :due_at, :issued_at,
                           :recipient_id, :recipient_email, :recipient_address,
                           :payment_information, :payment_purpose, :hide_total,
                           invoice_items_attributes: [
@@ -37,7 +38,7 @@ class InvoicesController < CrudController
                             :_destroy
                           ]]
 
-  before_render_index :year  # sets ivar used in view
+  before_render_index :year_from
 
   helper_method :group, :invoice_list
 
@@ -155,9 +156,10 @@ class InvoicesController < CrudController
   def list_entries
     scope = super.list
     scope = scope.includes(:recipient).references(:recipient)
+    scope = scope.joins(Invoice.last_payments_information)
     scope = scope.standalone if parent.is_a?(Group)
     scope = scope.page(params[:page]).per(50) unless params[:ids]
-    Invoice::Filter.new(params.reverse_merge(year: year)).apply(scope)
+    Invoice::Filter.new(params).apply(scope)
   end
 
   def payment_attrs
@@ -193,6 +195,12 @@ class InvoicesController < CrudController
 
   def update_invoice_list_total
     entry.invoice_list&.update_total
+  end
+
+  def year_from
+    if invoice_list
+      @year_from ||= invoice_list.created_at.year
+    end
   end
 
 end

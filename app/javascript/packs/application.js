@@ -23,9 +23,7 @@ import 'regenerator-runtime/runtime';
  */
 import 'jquery';
 import Rails from 'jquery-ujs';
-// Rails.start();
 import 'moment'; // used by events/date_period_validator.js.coffee
-import 'jquery.turbolinks/vendor/assets/javascripts/jquery.turbolinks';
 
 // jQuery UI
 import 'jquery-ui/ui/widgets/datepicker';
@@ -35,19 +33,20 @@ import 'jquery-ui/ui/i18n/datepicker-it';
 import 'jquery-ui/ui/effects/effect-highlight';
 
 // Bootstrap
-import 'bootstrap-sass/js/bootstrap-transition';
-import 'bootstrap-sass/js/bootstrap-alert';
-import 'bootstrap-sass/js/bootstrap-button';
-import 'bootstrap-sass/js/bootstrap-collapse';
-import 'bootstrap-sass/js/bootstrap-dropdown';
-import 'bootstrap-sass/js/bootstrap-tooltip';
-import 'bootstrap-sass/js/bootstrap-popover';
-import 'bootstrap-sass/js/bootstrap-typeahead';
-import 'bootstrap-sass/js/bootstrap-tab';
-import 'bootstrap-sass/js/bootstrap-modal';
+import 'bootstrap/js/src/alert'
+import 'bootstrap/js/src/button'
+// import 'bootstrap/js/src/carousel'
+import 'bootstrap/js/src/collapse'
+import 'bootstrap/js/src/dropdown'
+import 'bootstrap/js/src/modal'
+import  Popover  from 'bootstrap/js/src/popover'
+import 'bootstrap/js/src/scrollspy'
+import 'bootstrap/js/src/tab'
+// import 'bootstrap/js/src/toast'
+import 'bootstrap/js/src/tooltip'
 
 // UI Components
-import 'chosen-js';
+import 'tom-select'
 
 // Gems without NPM package
 import '../javascripts/vendor/gems';
@@ -56,11 +55,23 @@ import '../javascripts/vendor/gems';
 function requireAll(r) { r.keys().forEach(r); }
 requireAll(require.context('../javascripts/modules', true, /\.(js|coffee)$/));
 
+/**
+ * Load stimulus controllers and component controllers
+ */
+import "controllers";
+
 // Custom scripts from all wagons
 import '../javascripts/wagons';
+import '@hotwired/turbo-rails';
 
-import * as turbolinks from 'turbolinks';
-turbolinks.start();
+import { Application } from "@hotwired/stimulus"
+import { Turbo } from "@hotwired/turbo-rails"
+
+const application = Application.start()
+// application.debug = true
+window.Stimulus   = application
+window.Popover = Popover
+
 
 /**
  * Images
@@ -83,3 +94,4 @@ document.addEventListener('trix-file-accept', function(event) {
     event.preventDefault();
   }
 });
+

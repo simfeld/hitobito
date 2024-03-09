@@ -1,0 +1,166 @@
+name: "Composition Repo - Prepare Release"
+
+on:
+  workflow_call:
+    inputs:
+      composition:
+        description: "Composition repository, e.g. hitobito/ose_composition_pbs"
+        type: string
+        required: true
+      release_type:
+        description: "Type of Release: regular, patch or custom"
+        required: true
+        type: string
+        default: "regular"
+      next_version:
+        description: "next version number, if release-type is custom"
+        required: false
+        type: string
+      stage:
+        description: "Stage of Release to be prepared"
+        required: true
+        type: string
+      target_branch:
+        description: "Branch of individual repos, mostly: master"
+        required: false
+        type: string
+        default: "master"
+      dry_run:
+        description: "Only show commands to prepare, do not execute them"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  settings:
+    uses: ./.github/workflows/stage-settings.yml
+    with:
+      repository: ${{ inputs.composition }}
+      stage: ${{ inputs.stage }}
+      release_type: ${{ inputs.release_type }}
+      dry_run: ${{ inputs.dry_run }}
+
+  version:
+    runs-on: ubuntu-latest
+
+    needs:
+      - settings
+
+    outputs:
+      version: ${{ steps.determine.outputs.version }}
+
+    steps:
+      - name: "Checkout hitobito"
+        uses: actions/checkout@v4
+        with:
+          repository: "hitobito/hitobito"
+          ref: ${{ inputs.target_branch }}
+
+      - name: "Set up Ruby"
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler: none
+
+      - name: "Install dependencies"
+        run: |
+          gem install cmdparse
+
+      - name: "Get all tags from repo to determine the version"
+        run: |
+          git fetch --tags
+
+      - name: "Determine next version"
+        id: determine
+        env:
+          RELEASE_TYPE: ${{ needs.settings.outputs.release_type }}
+          NEXT_VERSION: ${{ inputs.next_version }}
+        run: |
+          echo "Requesting next '$RELEASE_TYPE'-version"
+          next_version=$(bin/version suggest "$RELEASE_TYPE" "$NEXT_VERSION")
+
+          echo "next version: ${next_version}"
+          echo "version=${next_version}" >> "$GITHUB_OUTPUT"
+
+  prepare_release:
+    runs-on: "ubuntu-latest"
+    needs:
+      - version
+      - settings
+
+    steps:
+      - name: "Checkout composition repo"
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ needs.settings.outputs.repo_name }}
+          ref: ${{ needs.settings.outputs.composition_branch }}
+          submodules: true
+          fetch-depth: 0 # ALL the historiez, including ALL the branches
+          token: ${{ secrets.RELEASE_PREPARATION_TOKEN }}
+
+      - name: "update submodules to release-state"
+        env:
+          TARGET_BRANCH: ${{ inputs.target_branch }}
+        run: |
+          git submodule foreach "git fetch && git fetch --tags"
+          # although requested, the branch might not be present everywhere
+          if [[ $TARGET_BRANCH != "master" ]]; then
+            git submodule foreach "git branch --all --list '*${TARGET_BRANCH}*'"
+            git submodule foreach "git switch -c ${TARGET_BRANCH} --track origin/${TARGET_BRANCH}; true"
+            git submodule foreach "git switch master; git switch ${TARGET_BRANCH}; true"
+          else
+            git submodule foreach "git switch master"
+          fi
+          git submodule foreach "git merge --ff-only" && git submodule status
+
+      - name: "Set up Ruby"
+        uses: ruby/setup-ruby@v1
+        with:
+          working-directory: hitobito
+
+      - name: "Install and configure dependencies"
+        env:
+          TRANSIFEX_VERSION: "v1.6.4"
+          TRANSIFEX_TOKEN: ${{ secrets.TRANSIFEX_TOKEN }}
+        run: |
+          # ruby things
+          gem install cmdparse pastel
+
+          # transifex / translations
+          mkdir -p $HOME/.local/bin/
+          echo "$HOME/.local/bin/" >> $GITHUB_PATH
+          curl -L https://github.com/transifex/cli/releases/download/${TRANSIFEX_VERSION}/tx-linux-amd64.tar.gz | tar xz -C $HOME/.local/bin/
+          echo -e "[https://www.transifex.com]\napi_hostname = https://api.transifex.com\nhostname = https://www.transifex.com\nusername = api\npassword = $TRANSIFEX_TOKEN\nrest_hostname = https://rest.api.transifex.com\ntoken = $TRANSIFEX_TOKEN" > $HOME/.transifexrc
+
+          # git
+          git config --global advice.detachedHead false
+
+          # add hitobito-core to path
+          echo "${PWD}/hitobito/bin" >> $GITHUB_PATH
+
+      - name: "Configure Git-User for the Release-Commits"
+        run: |
+          # we could use gitub-actor for workflow_call, and last committers of
+          # all wagons for scheduled releases. for now, this is fine.
+          git config --global user.name "$(cd hitobito && git --no-pager log --format=format:'%an' -n 1)"
+          git config --global user.email "$(cd hitobito && git --no-pager log --format=format:'%ae' -n 1)"
+
+      - name: "Prepare composition-repo for release"
+        env:
+          NEXT_VERSION: ${{ needs.version.outputs.version }}
+          RELEASE_STAGE: ${{ inputs.stage }}
+          DRY_RUN: ${{ needs.settings.outputs.dry_run }}
+        run: |
+          echo "Preparing $NEXT_VERSION for $RELEASE_STAGE $DRY_RUN"
+          echo "---"
+          release version
+          version version
+          echo "---"
+          echo "release $RELEASE_STAGE $NEXT_VERSION $DRY_RUN"
+          if [[ -n "$DRY_RUN" ]]; then
+            release "$RELEASE_STAGE" "$NEXT_VERSION" "$DRY_RUN"
+          else
+            release "$RELEASE_STAGE" "$NEXT_VERSION"
+          fi

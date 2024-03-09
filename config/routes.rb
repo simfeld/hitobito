@@ -36,6 +36,7 @@ Hitobito::Application.routes.draw do
       get code, to: "errors#show#{code}"
     end
 
+    get '/blocked' => 'blocked#index', as: :blocked
 
     get '/addresses/query' => 'addresses#query'
 
@@ -49,6 +50,11 @@ Hitobito::Application.routes.draw do
     get 'list_groups' => 'group/lists#index', as: :list_groups
 
     resources :groups do
+      scope module: 'subscriber' do
+        resource :subscriber_list, only: [:new] do
+          get 'typeahead' => 'subscriber_lists#typeahead'
+        end
+      end
       member do
         get :deleted_subgroups
         get :export_subgroups
@@ -66,7 +72,8 @@ Hitobito::Application.routes.draw do
       get 'self_registration' => 'groups/self_registration#new'
       post 'self_registration' => 'groups/self_registration#create'
 
-      resources :settings, only: [:index, :edit, :update], controller: 'group_settings', as: 'group_settings'
+      get 'self_inscription' => 'groups/self_inscription#new'
+      post 'self_inscription' => 'groups/self_inscription#create'
 
       FeatureGate.if('groups.statistics') do
         resource :statistics, only: [:show], module: :group
@@ -74,11 +81,13 @@ Hitobito::Application.routes.draw do
 
       get 'log' => 'group/log#index'
 
+      resources :payments, only: :index
       resources :invoices do
         resources :payments, only: :create
         collection do
           resource :evaluations, only: [:show], module: :invoices, as: 'invoices_evaluations'
           resources :by_article, only: [:index], module: :invoices, as: 'invoices_by_article'
+          resources :recalculate, only: [:new], module: :invoices, as: 'recalculate'
         end
       end
       resources :invoice_articles
@@ -92,6 +101,7 @@ Hitobito::Application.routes.draw do
 
       resource :invoice_list, except: [:edit, :show]
       resources :invoice_lists, only: [:index] do
+        resource :destroy, only: [:show, :destroy], module: :invoice_lists, as: 'invoice_lists_destroy'
         resources :invoices, only: [:index]
       end
       resource :payment_process, only: [:new, :show, :create]
@@ -99,6 +109,12 @@ Hitobito::Application.routes.draw do
       resources :notes, only: [:index, :create, :destroy]
 
       resources :people, except: [:new, :create] do
+        scope module: 'people' do
+          resource :manual_deletion, only: [:show] do
+            post :minimize
+            post :delete
+          end
+        end
 
         member do
           post :send_password_instructions
@@ -107,6 +123,8 @@ Hitobito::Application.routes.draw do
           post 'totp_reset' => 'people/totp_reset#create', as: 'totp_reset'
           post 'totp_disable' => 'people/totp_disable#create', as: 'totp_disable'
           post 'password_override' => 'person/security_tools#password_override'
+          post 'block' => 'person/security_tools#block_person'
+          post 'unblock' => 'person/security_tools#unblock_person'
 
           get 'history' => 'person/history#index'
           get 'log' => 'person/log#index'
@@ -157,6 +175,8 @@ Hitobito::Application.routes.draw do
           get :details
           get :role_types
         end
+
+        resources :terminations, module: :roles, only: %w[new create]
       end
       get 'roles' => 'roles#new' # route required for language switch
       get 'roles/:id' => 'roles#edit' # route required for language switch
@@ -243,6 +263,7 @@ Hitobito::Application.routes.draw do
       end
 
       resources :mailing_lists do
+        resource :subscriber_list, only: [:create], module: :subscriber
         resources :messages
 
         resources :subscriptions, only: [:index, :destroy] do
@@ -269,7 +290,11 @@ Hitobito::Application.routes.draw do
             get 'event' => 'subscriber/event#new' # route required for language switch
 
             resource :user, only: [:create, :destroy], controller: 'subscriber/user'
+
+            resource :filter, only: [:edit, :update], controller: 'subscriber/filter'
+
           end
+
         end
 
         resources :mailchimp_synchronizations, only: [:create]
@@ -302,13 +327,7 @@ Hitobito::Application.routes.draw do
     resources :event_kinds, module: 'event', controller: 'kinds'
     resources :event_kind_categories, module: 'event', controller: 'kind_categories'
 
-    resources :hitobito_log_entries, only: :index do
-      collection do
-        Hitobito.logger.categories.each do |category|
-          get category, action: :index, defaults: {category: category}
-        end
-      end
-    end
+    get 'hitobito_log_entries(/:category)', to: 'hitobito_log_entries#index', as: :hitobito_log_entries
 
     scope 'mailing_lists', module: :mailing_lists do
       scope 'imap_mails' do
@@ -331,6 +350,8 @@ Hitobito::Application.routes.draw do
         resource :settings, controller: 'label_format/settings', as: 'label_format_settings'
       end
     end
+
+    resources :self_registration_reasons
 
     resources :custom_contents, only: [:index, :edit, :update]
     get 'custom_contents/:id' => 'custom_contents#edit'
@@ -379,8 +400,12 @@ Hitobito::Application.routes.draw do
   mount Rswag::Ui::Engine => '/api-docs'
   mount Rswag::Api::Engine => '/api-docs'
 
+  get 'api/schema', to: 'json_api/schema#show'
+  get 'api/openapi', to: 'json_api/openapi#show'
+
   scope path: ApplicationResource.endpoint_namespace, module: :json_api, constraints: { format: 'jsonapi' }, defaults: { format: 'jsonapi' } do
     resources :people, only: [:index, :show, :update]
+    resources :groups, only: [:index, :show]
   end
 
   # The priority is based upon order of creation:

@@ -46,8 +46,8 @@ describe PeopleController, js: true do
 
       it 'changes role' do
         obsolete_node_safe do
-          find('#role_type_select a.chosen-single').click
-          find('#role_type_select ul.chosen-results').find('li', text: 'Leader').click
+          find('#role_type_select #role_type').click
+          find('#role_type_select #role_type').find('option', text: 'Leader').click
 
           click_button 'Speichern'
           expect(page).to have_no_css('.popover')
@@ -57,11 +57,11 @@ describe PeopleController, js: true do
 
       it 'changes role and group' do
         obsolete_node_safe do
-          find('#role_group_id_chosen a.chosen-single').click
-          find('#role_group_id_chosen ul.chosen-results').find('li', text: 'Group 111').click
+          find('#role_group_id_chosen #role_type').click
+          find('#role_group_id_chosen #role_type').find('option', text: 'Group 111').click
 
-          find('#role_type_select a.chosen-single').click
-          find('#role_type_select ul.chosen-results').find('li', text: 'Leader').click
+          find('#role_type_select #role_type').click
+          find('#role_type_select #role_type').find('option', text: 'Leader').click
           click_button 'Speichern'
           expect(cell).to have_text 'Group 111'
         end
@@ -69,15 +69,15 @@ describe PeopleController, js: true do
 
       it 'informs about missing type selection' do
         obsolete_node_safe do
-          find('#role_group_id_chosen a.chosen-single').click
-          find('#role_group_id_chosen ul.chosen-results').find('li', text: 'Group 111').click
+          find('#role_group_id_chosen #role_type').click
+          find('#role_group_id_chosen #role_type').find('option', text: 'Group 111').click
           fill_in('role_label', with: 'dummy')
 
           click_button 'Speichern'
-          expect(page).to have_selector('.popover .alert-error', text: 'Rolle muss ausgefüllt werden')
+          expect(page).to have_selector('.popover .alert-danger', text: 'Rolle muss ausgefüllt werden')
 
-          find('#role_type_select a.chosen-single').click
-          find('#role_type_select ul.chosen-results').find('li', text: 'Leader').click
+          find('#role_type_select #role_type').click
+          find('#role_type_select #role_type').find('option', text: 'Leader').click
           click_button 'Speichern'
           expect(cell).to have_text 'Group 111'
         end
@@ -115,9 +115,10 @@ describe PeopleController, js: true do
           is_expected.to have_content 'Beziehungen'
 
           expect do
+            expect(page).to have_selector('a[data-association="relations_to_tails"]')
             find('a[data-association="relations_to_tails"]', text: 'Eintrag hinzufügen').click
             find('#relations_to_tails_fields input[data-provide=entity]').set('Bottom')
-            find('#relations_to_tails_fields ul.typeahead li').click
+            find('#relations_to_tails_fields ul[role="listbox"] li[role="option"]').click
 
             all('button', text: 'Speichern').first.click
             expect(page).to have_content('erfolgreich aktualisiert')
@@ -135,7 +136,8 @@ describe PeopleController, js: true do
           is_expected.to have_content 'Beziehungen'
 
           expect do
-            find('#relations_to_tails_fields .remove_nested_fields').first.click
+            expect(page).to have_selector('#relations_to_tails_fields .remove_nested_fields')
+            all('#relations_to_tails_fields .remove_nested_fields').first.click
 
             all('button', text: 'Speichern').first.click
             expect(page).to have_content('erfolgreich aktualisiert')
@@ -143,6 +145,107 @@ describe PeopleController, js: true do
           end.to change { relations.size }.by(-1)
         end
       end
+    end
+  end
+
+  context 'household' do
+    let(:user) { people(:top_leader) }
+    let(:person) { people(:bottom_member) }
+
+    def create_person(first_name, household_key: nil)
+      Fabricate(:person, first_name: first_name, household_key: household_key, roles: [
+        Fabricate.build(Group::BottomLayer::Member.sti_name, group: person.primary_group)
+      ])
+    end
+
+    def household_key_people_container = find('.household_key_people', visible: false)
+
+    before { sign_in(user) }
+
+    it 'can create a new household' do
+      expect(person.household_key).to be_blank
+      prospective_housemate = create_person('Prospective Housemate')
+
+      visit edit_group_person_path(group_id: person.primary_group_id, id: person.id)
+      expect(page).to have_field('household', checked: false)
+      expect(page).to have_no_field('household_query')
+      expect(household_key_people_container).to have_no_field(type: :hidden)
+
+      check('household')
+      expect(page).to have_field('household_query')
+
+      fill_in('household_query', with: prospective_housemate.first_name)
+      find('#autoComplete_result_0').click
+      expect(household_key_people_container).to have_field(type: :hidden, count: 1)
+
+      click_on('Speichern', match: :first)
+      expect(page).to have_selector('.alert-success', text: /erfolgreich aktualisiert/)
+
+      expect(person.reload.household_people).to contain_exactly(prospective_housemate)
+    end
+
+    it 'can add a person to a household' do
+      person.update!(household_key: 'my-household')
+      housemate = create_person('Housemate', household_key: 'my-household')
+
+      prospective_housemate = create_person('Prospective Housemate')
+
+      visit edit_group_person_path(group_id: person.primary_group_id, id: person.id)
+      expect(page).to have_field('household', checked: true)
+      expect(page).to have_field('household_query')
+      expect(household_key_people_container).to have_field(type: :hidden, count: 1)
+
+      fill_in('household_query', with: prospective_housemate.first_name)
+      find('#autoComplete_result_0').click
+      expect(household_key_people_container).to have_field(type: :hidden, count: 2)
+
+      click_on('Speichern', match: :first)
+      expect(page).to have_selector('.alert-success', text: /erfolgreich aktualisiert/)
+
+      expect(person.household_people).to contain_exactly(housemate, prospective_housemate)
+    end
+
+    it 'can leave a household' do
+      person.update!(household_key: 'my-household')
+      housemate1 = create_person('Housemate1', household_key: 'my-household')
+      housemate2 = create_person('Housemate2', household_key: 'my-household')
+
+      visit edit_group_person_path(group_id: person.primary_group_id, id: person.id)
+      expect(page).to have_field('household', checked: true)
+      expect(page).to have_field('household_query')
+      expect(household_key_people_container).to have_field(type: :hidden, count: 2)
+
+      uncheck('household')
+      expect(household_key_people_container).to have_no_field(type: :hidden)
+      expect(household_key_people_container).to have_field(type: :hidden, disabled: true, count: 2)
+
+      click_on('Speichern', match: :first)
+      expect(page).to have_selector('.alert-success', text: /erfolgreich aktualisiert/)
+
+      expect(person.reload.household_key).to be_nil
+      expect(person.household_people).to be_empty
+
+      expect(housemate1.household_people).to contain_exactly(housemate2)
+    end
+
+    it 'can dissolve a household' do
+      person.update!(household_key: 'my-household')
+      housemate = create_person('Housemate', household_key: 'my-household')
+
+      visit edit_group_person_path(group_id: person.primary_group_id, id: person.id)
+      expect(page).to have_field('household', checked: true)
+      expect(page).to have_field('household_query')
+      expect(household_key_people_container).to have_field(type: :hidden, count: 1)
+
+      uncheck('household')
+      expect(household_key_people_container).to have_no_field(type: :hidden)
+      expect(household_key_people_container).to have_field(type: :hidden, disabled: true, count: 1)
+
+      click_on('Speichern', match: :first)
+      expect(page).to have_selector('.alert-success', text: /erfolgreich aktualisiert/)
+
+      expect(person.reload.household_key).to be_nil
+      expect(housemate.reload.household_key).to be_nil
     end
   end
 end

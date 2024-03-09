@@ -79,12 +79,14 @@ class Event::ParticipationsController < CrudController # rubocop:disable Metrics
         entries
         @person_add_requests = fetch_person_add_requests
       end
-      format.pdf   { render_pdf(filter_entries.collect(&:person), group) }
-      format.csv   { render_tabular_in_background(:csv) }
-      format.vcf   { render_vcf(filter_entries.includes(person: :phone_numbers).collect(&:person)) }
-      format.xlsx  { render_tabular_in_background(:xlsx) }
-      format.email { render_emails(filter_entries.collect(&:person)) }
-      format.json  { render_entries_json(filter_entries) }
+      format.pdf           { render_pdf(filter_entries.collect(&:person), group) }
+      format.csv           { render_tabular_in_background(:csv) }
+      format.vcf           { render_vcf(filter_entries.includes(person: :phone_numbers)
+                                                      .collect(&:person)) }
+      format.xlsx          { render_tabular_in_background(:xlsx) }
+      format.email         { render_emails(filter_entries.collect(&:person), ',') }
+      format.email_outlook { render_emails(filter_entries.collect(&:person), ';') }
+      format.json          { render_entries_json(filter_entries) }
     end
   end
 
@@ -104,12 +106,7 @@ class Event::ParticipationsController < CrudController # rubocop:disable Metrics
   end
 
   def destroy
-    location = if entry.person_id == current_user.id
-                 group_event_path(group, event)
-               else
-                 group_event_application_market_index_path(group, event)
-               end
-    super(location: location)
+    super(location: after_destroy_path)
   end
 
   def self.model_class
@@ -145,15 +142,23 @@ class Event::ParticipationsController < CrudController # rubocop:disable Metrics
     super.merge(current_person.table_display_for(Event::Participation).sort_statements(list))
   end
 
+  def after_destroy_path
+    if entry.person_id == current_user.id
+      group_event_path(group, event)
+    else
+      group_event_application_market_index_path(group, event)
+    end
+  end
+
   def with_person_add_request(&block)
     creator = Person::AddRequest::Creator::Event.new(entry.roles.first, current_ability)
     msg = creator.handle(&block)
-    redirect_to group_event_participations_path(group, event), alert: msg if msg
+    redirect_to return_path || group_event_participations_path(group, event), alert: msg if msg
   end
 
   def list_entries
     filter = event_participation_filter
-    records = filter.list_entries.page(params[:page])
+    records = filter.list_entries.includes(person: :picture_attachment).page(params[:page])
     @counts = filter.counts
     sort_param = params[:sort]
 
@@ -323,7 +328,7 @@ class Event::ParticipationsController < CrudController # rubocop:disable Metrics
     if entry.pending?
       warn = translate(:pending, full_entry_label: full_entry_label)
       warn += '<br />' + translate(:instructions) if append_mailing_instructions?
-      flash[:warn] ||= warn
+      flash[:warning] ||= warn
       flash[:alert] ||= translate(:waiting_list) if entry.waiting_list?
     else
       notice = translate(:success, full_entry_label: full_entry_label)

@@ -60,7 +60,7 @@ public/uploads
 .ruby-version
 .rvmrc
 
-# ama custom project setup
+# custom project/editor setup
 TAGS
 /.vimrc
 /todo.tasks
@@ -72,6 +72,8 @@ TAGS
 .pry_history
 .pry-history
 .project
+.vscode
+.nvimrc
 
 # for experiments with webpack
 
@@ -92,3 +94,11 @@ yarn-debug.log*
 .yarn-integrity
 config/initializers/work_around_docker_fs_bug.rb
 config/mail.yml
+
+# docker dev setup
+/jwt_signing_key.pem
+/db/seeds/development/nextcloud_oauth_app_seed.rb
+
+# generated rswag swagger files
+# (not used anymore, swagger is now generated on the fly with graphiti)
+/swagger

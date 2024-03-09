@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-#  Copyright (c) 2019-2022, Pfadibewegung Schweiz. This file is part of
+#  Copyright (c) 2019-2024, Pfadibewegung Schweiz. This file is part of
 #  hitobito and licensed under the Affero General Public License version 3
 #  or later. See the COPYING file at the top-level directory or at
 #  https://github.com/hitobito/hitobito.
@@ -32,14 +32,11 @@ module Oauth
     has_many :cors_origins, as: :auth_method, dependent: :delete_all
     accepts_nested_attributes_for :cors_origins, allow_destroy: true
 
-    mount_uploader :carrierwave_logo, Oauth::LogoUploader, mount_on: 'logo'
     has_one_attached :logo do |attachable|
       attachable.variant :thumb, resize_to_fill: [64, 64]
     end
-    if ENV['NOCHMAL_MIGRATION'].blank? # if not migrating RIGHT NOW, i.e. normal case
-      validates :logo, dimension: { width: { max: 8_000 }, height: { max: 8_000 } },
-                       content_type: ['image/jpeg', 'image/gif', 'image/png']
-    end
+    validates :logo, dimension: { width: { max: 8_000 }, height: { max: 8_000 } },
+                     content_type: ['image/jpeg', 'image/gif', 'image/png']
 
     scope :list, -> { order(:name) }
 
@@ -65,6 +62,10 @@ module Oauth
       access_grants.select do |access_grant|
         !access_grant.expired? && access_grant.revoked_at.nil?
       end.count
+    end
+
+    def logo_default
+      'oauth_app.png'
     end
 
     def remove_logo

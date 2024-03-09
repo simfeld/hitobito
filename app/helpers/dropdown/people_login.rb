@@ -31,16 +31,18 @@ module Dropdown
       activate_totp
       reset_totp
       disable_totp
+      unblock_person
     end
 
     def send_login
-      if @user.email && (@user.roles.any? || @user.root?)
+      if template.can?(:send_password_instructions, @user) &&
+          @user.email && (@user.roles.any? || @user.root?)
         add_item(translate('.send_login'),
                  template.send_password_instructions_group_person_path(template.parent, @user),
                  method: :post,
-                 rel: :tooltip,
-                 'data-container' => 'body',
-                 'data-html' => 'true',
+                 'data-bs-toggle': 'tooltip',
+                 'data-bs-container': 'body',
+                 'data-bs-html': 'true',
                  title: template.send_login_tooltip_text,
                  remote: true)
       end
@@ -70,7 +72,14 @@ module Dropdown
     def disable_totp
       if @user.two_factor_authentication_registered? && template.can?(:totp_disable, @user)
         add_item(translate('.disable_totp'),
-                 template.totp_disable_group_person_path, method: :post)
+                 template.totp_disable_group_person_path)
+      end
+    end
+
+    def unblock_person
+      if @user.blocked? && template.can?(:update, @user)
+        add_item(translate('.unblock_person'),
+                 template.unblock_group_person_path(template.parent, @user), method: :post)
       end
     end
   end

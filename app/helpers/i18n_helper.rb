@@ -17,7 +17,7 @@ module I18nHelper
   #  - {parent_controller}.global.{key}
   #  - ...
   #  - global.{key}
-  def translate_inheritable(key, variables = {})
+  def translate_inheritable(key, **variables) # rubocop:disable Metrics/MethodLength
     defaults = []
     unless controller.try(:skip_translate_inheritable)
       partial = @virtual_path ? @virtual_path.gsub(/.*\/_?/, '') : nil
@@ -33,9 +33,15 @@ module I18nHelper
       end
     end
     defaults << :"global.#{key}"
-
-    variables[:default] ||= defaults
-    t(defaults.shift, variables)
+    key = defaults.shift
+    options = variables.dup.reverse_merge(default: defaults)
+    t(key, **options)
+  rescue I18n::MissingTranslationData => e
+    # Somehow the options are not set correctly in the exception which causes the message to be
+    # missing this data relevant for understanding the problem. As a workaround we set the options
+    # manually and re-raise the exception.
+    e.instance_variable_set(:@options, options)
+    raise e
   end
 
   alias ti translate_inheritable
@@ -49,7 +55,7 @@ module I18nHelper
   #  - global.associations.{key}
   def translate_association(key, assoc = nil, variables = {})
     primary =
-      if assoc
+      if assoc&.klass
         assoc_class_key = assoc.klass.model_name.to_s.underscore
         variables[:default] ||= [:"activerecord.associations.#{assoc_class_key}.#{key}",
                                  :"global.associations.#{key}"]
@@ -58,7 +64,7 @@ module I18nHelper
       else
         "global.associations.#{key}"
       end
-    t(primary, variables)
+    t(primary, **variables)
   end
 
   alias ta translate_association

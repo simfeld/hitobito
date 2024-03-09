@@ -121,4 +121,45 @@ describe InvoiceConfig do
       expect(invoice_config).to be_valid
     end
   end
+
+  describe 'sender_name validation' do
+    it 'allows special characters' do
+      invoice_config.sender_name = 'Étienne Müller / Sami +*'
+
+      expect(invoice_config).to be_valid
+    end
+
+    it 'doesnt allow emails' do
+      invoice_config.sender_name = 'hitobito@bern.ch'
+
+      expect(invoice_config).not_to be_valid
+      expect(invoice_config.errors.messages[:sender_name].first).to eq('ist nicht gültig')
+    end
+  end
+
+  context "#logo_enabled?" do
+    context 'with logo attached' do
+      before { invoice_config.logo.attach(fixture_file_upload("images/logo.png")) }
+
+      it 'returns true when logo_position is left' do
+        invoice_config.logo_position = 'left'
+        expect(invoice_config.send(:logo_enabled?)).to be(true)
+      end
+
+      it 'returns true when logo_position is right' do
+        invoice_config.logo_position = 'right'
+        expect(invoice_config.send(:logo_enabled?)).to be(true)
+      end
+
+      it 'returns false when logo_position is disabled' do
+        invoice_config.logo_position = 'disabled'
+        expect(invoice_config.send(:logo_enabled?)).to be(false)
+      end
+
+      it 'returns false when logo_position is nil' do
+        invoice_config.logo_position = nil
+        expect(invoice_config.send(:logo_enabled?)).to be(false)
+      end
+    end
+  end
 end

@@ -109,6 +109,10 @@ describe PersonAbility do
       other = Fabricate(Group::TopLayer::TopAdmin.name.to_sym, group: Group::TopLayer.create(name: 'foo'), created_at: 2.weeks.ago, deleted_at: 1.week.ago)
       is_expected.to_not be_able_to(:show, other.person.reload)
     end
+
+    it 'may create households' do
+      is_expected.to be_able_to(:create_households, Person)
+    end
   end
 
   describe 'layer_and_below_full in bottom layer' do
@@ -265,6 +269,10 @@ describe PersonAbility do
     it 'may show person with deleted role in upper layer' do
       other = Fabricate(Group::TopGroup::LocalGuide.name.to_sym, group: groups(:top_group), created_at: 2.weeks.ago, deleted_at: 1.week.ago)
       is_expected.to_not be_able_to(:show, other.person.reload)
+    end
+
+    it 'may create households' do
+      is_expected.to be_able_to(:create_households, Person)
     end
   end
 
@@ -603,6 +611,10 @@ describe PersonAbility do
       other = Fabricate(Group::TopGroup::Leader.name.to_sym, group: groups(:top_group), created_at: 2.weeks.ago, deleted_at: 1.week.ago)
       is_expected.to_not be_able_to(:show, other.person.reload)
     end
+
+    it 'may create households' do
+      is_expected.to be_able_to(:create_households, Person)
+    end
   end
 
   context :layer_read do
@@ -701,6 +713,10 @@ describe PersonAbility do
     it 'may not show person with deleted role in layer' do
       other = Fabricate(Group::BottomLayer::Member.name.to_sym, group: groups(:bottom_layer_one), created_at: 2.weeks.ago, deleted_at: 1.week.ago)
       is_expected.to_not be_able_to(:show, other.person.reload)
+    end
+
+    it 'may not create households' do
+      is_expected.to_not be_able_to(:create_households, Person)
     end
   end
 
@@ -913,6 +929,10 @@ describe PersonAbility do
       is_expected.not_to be_able_to(:index_tags, other.person.reload)
       is_expected.not_to be_able_to(:manage_tags, other.person.reload)
     end
+
+    it 'may create households' do
+      is_expected.to be_able_to(:create_households, Person)
+    end
   end
 
   context :group_and_below_read do
@@ -1013,6 +1033,10 @@ describe PersonAbility do
       other = Fabricate(Group::TopGroup::Member.name.to_sym, group: groups(:top_group))
       is_expected.not_to be_able_to(:index_tags, other.person.reload)
       is_expected.not_to be_able_to(:manage_tags, other.person.reload)
+    end
+
+    it 'may not create households' do
+      is_expected.to_not be_able_to(:create_households, Person)
     end
   end
 
@@ -1132,6 +1156,10 @@ describe PersonAbility do
       is_expected.to be_able_to(:index_tags, other.person.reload)
       is_expected.to be_able_to(:manage_tags, other.person.reload)
     end
+
+    it 'may create households' do
+      is_expected.to be_able_to(:create_households, Person)
+    end
   end
 
   context :group_read do
@@ -1189,6 +1217,10 @@ describe PersonAbility do
       is_expected.not_to be_able_to(:index_people, groups(:bottom_group_one_two))
       is_expected.not_to be_able_to(:index_full_people, groups(:bottom_group_one_two))
       is_expected.not_to be_able_to(:index_local_people, groups(:bottom_group_one_two))
+    end
+
+    it 'may not create households' do
+      is_expected.to_not be_able_to(:create_households, Person)
     end
   end
 
@@ -1443,6 +1475,23 @@ describe PersonAbility do
         is_expected.to_not be_able_to(:totp_reset, people(:bottom_member))
       end
     end
+
+    context 'layer and below full' do
+      let(:role) { Fabricate(Group::TopGroup::Leader.name.to_sym, group: groups(:top_group)) }
+
+      it 'can reset other person' do
+        is_expected.to be_able_to(:totp_reset, people(:bottom_member))
+      end
+    end
+
+    context 'layer full' do
+      let(:role) { Fabricate(Group::TopGroup::LocalGuide.name.to_sym, group: groups(:top_group)) }
+
+      it 'can reset other person' do
+        Fabricate(Group::TopGroup::Member.name.to_sym, person: people(:bottom_member), group: groups(:top_group))
+        is_expected.to be_able_to(:totp_reset, people(:bottom_member))
+      end
+    end
   end
 
   context :totp_disable do
@@ -1496,5 +1545,34 @@ describe PersonAbility do
     it 'may not update_password if not already set' do
       is_expected.to_not be_able_to(:update_password, person_without_roles)
     end
+  end
+
+  context 'person with only basic permissions role' do
+
+    let(:role) do
+      Fabricate(Group::BottomLayer::BasicPermissionsOnly.sti_name.to_sym,
+                group: groups(:bottom_layer_one))
+    end
+
+    it 'may not show_details herself' do
+      is_expected.to_not be_able_to(:show_details, role.person)
+    end
+
+    it 'may not show_full herself' do
+      is_expected.to_not be_able_to(:show_full, role.person)
+    end
+
+    it 'may not show history on herself' do
+      is_expected.to_not be_able_to(:history, role.person)
+    end
+
+    it 'may not show log on herself' do
+      is_expected.to_not be_able_to(:log, role.person)
+    end
+
+    it 'may not index invoices on herself' do
+      is_expected.to_not be_able_to(:index_invoices, role.person)
+    end
+
   end
 end

@@ -1,6 +1,6 @@
-# encoding: utf-8
+# frozen_string_literal: true
 
-#  Copyright (c) 2012-2020, CVP Schweiz. This file is part of
+#  Copyright (c) 2012-2024, CVP Schweiz. This file is part of
 #  hitobito_cvp and licensed under the Affero General Public License version 3
 #  or later. See the COPYING file at the top-level directory or at
 #  https://github.com/hitobito/hitobito_cvp.
@@ -8,6 +8,8 @@
 
 module Sheet
   class InvoiceList < Sheet::Base
+
+    self.parent_sheet = Sheet::Group
 
     def title
       if entry && !entry.receiver
@@ -31,7 +33,7 @@ module Sheet
 
     # Needs spacing because parent has no tabs
     def render_parent_title
-      content_tag(:div, super, style: 'padding-bottom: 1em')
+      content_tag(:div, super, class: 'pb-3')
     end
 
     def link_url

@@ -2,7 +2,7 @@
   @media screen and (min-width: 500px) {
     #page .container-fluid {
       min-width: auto;
-      width: 450px;
+      width: 750px;
     }
 
     .form-horizontal .control-label {
@@ -15,10 +15,14 @@
       margin-left: 0px;
     }
 
-    input.span6, textarea.span6, .uneditable-input.span6 {
+    input.col6, textarea.col-6, .uneditable-input.col-6 {
       /* width: 556px; */
       width: 100%;
     }
+  }
+
+  #content div.offset-md-3.offset-xl-2 {
+    width: 70%;
   }
 }
 

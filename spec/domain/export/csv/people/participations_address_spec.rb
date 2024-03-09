@@ -25,11 +25,12 @@ describe Export::Tabular::People::ParticipationsAddress do
   context 'integration' do
     let(:simple_headers) do
       ['Vorname', 'Nachname', 'Übername', 'Firmenname', 'Firma', 'Haupt-E-Mail',
-       'Adresse', 'PLZ', 'Ort', 'Land', 'Geschlecht', 'Geburtstag', 'Hauptebene', 'Rollen', 'Tags']
+       'Adresse', 'PLZ', 'Ort', 'Land', 'Hauptebene', 'Rollen']
     end
 
     let(:data) { Export::Tabular::People::ParticipationsAddress.export(:csv, list) }
-    let(:csv) { CSV.parse(data, headers: true, col_sep: Settings.csv.separator) }
+    let(:data_without_bom) { data.gsub(Regexp.new("^#{Export::Csv::UTF8_BOM}"), '') }
+    let(:csv) { CSV.parse(data_without_bom, headers: true, col_sep: Settings.csv.separator) }
 
     subject { csv }
 

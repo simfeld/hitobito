@@ -118,8 +118,40 @@ describe GroupsController do
       end
     end
 
-    describe 'PUT update' do
+    describe 'POST create' do
       let(:attrs) {  { type: 'Group::TopGroup', parent_id: group.id } }
+
+      it 'sets name and short_name' do
+        post :create, params: { group: attrs.merge({
+          name: 'custom_name',
+          short_name: 'custom_short_name'
+        })
+        }
+        new_group = assigns(:group)
+
+        expect(new_group.name).to eq('custom_name')
+        expect(new_group.short_name).to eq('custom_short_name')
+      end
+
+      context 'static_name group' do
+        before { allow(Group::TopGroup).to receive(:static_name).and_return(true) }
+
+        it 'does not set name and short_name' do
+          post :create, params: { group: attrs.merge({
+            name: 'custom_name',
+            short_name: 'custom_short_name'
+            })
+          }
+          new_group = assigns(:group)
+
+          expect(new_group.name).to eq('Top Group')
+          expect(new_group.short_name).to eq('Top Group')
+        end
+      end
+    end
+
+    describe 'PUT update' do
+      let(:attrs) { { type: 'Group::TopGroup', parent_id: group.id } }
       let(:top_leader_role) { roles(:top_leader) }
       let(:person) { top_leader_role.person }
       let(:group) { top_leader_role.group }
@@ -145,6 +177,92 @@ describe GroupsController do
         expect do
           put :update, params: { id: group, group: attrs.merge(name: 'foobar', contact_id: non_member.id) }
         end.not_to change { group.reload.contact_id }
+      end
+
+      it 'allows enabling #main_self_registration_group' do
+        group.update!(self_registration_role_type: 'Group::TopGroup::Member')
+        expect do
+          put :update, params: { id: group, group: {main_self_registration_group: '1'} }
+        end.to change { group.reload.main_self_registration_group }.to true
+      end
+
+      it 'allows disabling #main_self_registration_group' do
+        group.update_column(:main_self_registration_group, true)
+        expect do
+          put :update, params: { id: group, group: {main_self_registration_group: '0'} }
+        end.to change { group.reload.main_self_registration_group }.to false
+      end
+
+      it 'clears other groups #main_self_registration_group' do
+        group.update!(self_registration_role_type: 'Group::TopGroup::Member')
+        groups(:bottom_group_one_two).update_column(:main_self_registration_group, true)
+
+        expect do
+          put :update, params: { id: group, group: {main_self_registration_group: '1'} }
+        end.to change { groups(:bottom_group_one_two).reload.main_self_registration_group }.to false
+      end
+
+      it 'denies setting #main_self_registration_group without permission' do
+        user = Fabricate(Group::TopGroup::LocalGuide.name.to_sym, group: groups(:top_group)).person
+        expect(Ability.new(user)).to be_able_to(:update, group)
+        expect(Ability.new(user)).not_to be_able_to(:set_main_self_registration_group, group)
+
+        sign_in(user)
+
+        expect do
+          put :update, params: { id: group, group: {main_self_registration_group: '1'} }
+        end.to raise_error(CanCan::AccessDenied)
+      end
+
+      it 'updates text message provider attributes' do
+        patch :update, params: { id: group.id, group: {
+          letter_address_position: 'right',
+          text_message_username: 'housi',
+          text_message_password: 'longlivesms',
+          text_message_originator: 'Wernu',
+          text_message_provider: 'aspsms' }
+        }
+
+        group.reload
+
+        expect(group.text_message_originator).to eq('Wernu')
+        expect(group.text_message_provider).to eq('aspsms')
+        expect(group.text_message_username).to eq('housi')
+        expect(group.text_message_password).to eq('longlivesms')
+      end
+
+      it 'updates name and short_name' do
+        expect(group.name).to eq('TopGroup')
+        expect(group.short_name).to be_nil
+
+        patch :update, params: { id: group.id, group: {
+          name: 'new_name',
+          short_name: 'new_short_name' }
+        }
+
+        group.reload
+
+        expect(group.name).to eq('new_name')
+        expect(group.short_name).to eq('new_short_name')
+      end
+
+      context 'static_name group' do
+        before { allow(group).to receive(:static_name).and_return(true) }
+
+        it 'does not update name and short_name' do
+          expect(group.name).to eq('Top Group')
+          expect(group.short_name).to eq('Top Group')
+
+          patch :update, params: { id: group.id, group: {
+            name: 'new_name',
+            short_name: 'new_short_name' }
+          }
+
+          group.reload
+
+          expect(group.name).to eq('Top Group')
+          expect(group.short_name).to eq('Top Group')
+        end
       end
     end
 
@@ -260,6 +378,17 @@ describe GroupsController do
     it 'GET index fails with HTTP 403 (forbidden)' do
       get :show, params: { id: group.id }
       expect(response).to have_http_status(:forbidden)
+    end
+  end
+
+  describe 'mounted attributes' do
+    let(:group) { groups(:top_layer) }
+    before { sign_in(person) }
+
+    it 'updates mounted attributes' do
+      put :update, params: { id: group, group: { foundation_year: 1852 } }
+
+      expect(group.reload.foundation_year).to eq(1852)
     end
   end
 end

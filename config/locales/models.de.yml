@@ -1,4 +1,4 @@
-#  Copyright (c) 2012-2023, Jungwacht Blauring Schweiz. This file is part of
+#  Copyright (c) 2012-2024, Jungwacht Blauring Schweiz. This file is part of
 #  hitobito and licensed under the Affero General Public License version 3
 #  or later. See the COPYING file at the top-level directory or at
 #  https://github.com/hitobito/hitobito.
@@ -35,6 +35,26 @@ de:
     deleted_info: Gelöscht
     archived_info: Archiviert
 
+  activemodel:
+    models:
+      roles/termination:
+        one: Austritt
+        other: Austritte
+
+    attributes:
+      roles/termination:
+        terminate_on: Austrittsdatum
+
+    errors:
+      models:
+        roles/termination:
+          attributes:
+            terminate_on:
+              too_early: "muss in der Zukunft liegen"
+              too_late: "darf nicht nach dem %{date} sein"
+            role:
+              not_terminatable: "ist nicht kündbar"
+
   activerecord:
     errors:
       messages:
@@ -46,7 +66,6 @@ de:
         must_exist: müssen vorhanden sein
         readonly: darf nicht verändert werden
         cannot_be_later_than_today: kann nicht später als heute sein
-        cannot_be_later_than_deleted_at: muss vor oder am selben Tag wie der Austritt sein
       models:
         cors_origin:
           attributes:
@@ -81,6 +100,10 @@ de:
           attributes:
             person_id:
               taken: ist bereits angemeldet
+        group:
+          attributes:
+            self_registration_role_type:
+              blank: 'muss ausgefüllt werden wenn "Anzeige auf Loginseite" ausgewählt ist'
         mailing_list:
           attributes:
             mail_name:
@@ -105,6 +128,8 @@ de:
                         'Weitere E-Mails' Adressen eintragen, welche bei anderen Personen
                         als Haupt-E-Mail vergeben sind (Die Haupt-E-Mail
                         kann leer gelassen werden).
+            self_registration_reason_custom_text:
+              either_preset_or_custom: kann nicht gesetzt werden, wenn ein vordefinierter Eintrittsgrund ausgewählt wurde.
         person/add_request:
           attributes:
             person_id:
@@ -144,6 +169,8 @@ de:
             account_number:
               required: 'muss ausgefüllt werden'
               invalid_check_digit: 'ist nicht gültig; Inkorrekte Prüfziffer'
+            logo:
+              attached_unless_disabled: 'muss angegeben werden, wenn eine Logoposition gewählt ist'
             payee:
               to_long: 'darf höchstens 2 Zeilen enthalten'
               must_have_3_lines: 'muss genau 3 Zeilen enthalten'
@@ -151,6 +178,11 @@ de:
             attributes:
                 additional_sender:
                     invalid: "muss Mailadressen vom Format abcd@ee.ch oder *@ee.ch enthalten. Mehrere Adressen müssen mit ',' oder ';' abgetrennt werden."
+        role:
+          attributes:
+            delete_on:
+              must_be_later_than_created_at: kann nicht vor Von sein
+
 
     models:
       acts_as_taggable_on/tag:
@@ -222,6 +254,9 @@ de:
       event/date:
         one: Datum
         other: Daten
+      future_role:
+        one: Zukünftige Rolle
+        other: Zukünftige Rollen
       family_member:
         one: Familienmitglied
         other: Familienmitglieder
@@ -342,7 +377,9 @@ de:
               m: Lieber %{first_name}
               w: Liebe %{first_name}
               other: Liebe*r %{first_name}
-
+      self_registration_reason:
+        one: Vordefinierter Eintrittsgrund
+        other: Vordefinierte Eintrittsgründe
       service_token:
         one: API-Key
         other: API-Keys
@@ -442,6 +479,9 @@ de:
         language: Sprache
         primary_group_id: Hauptgruppe
         layer_group_label: Hauptebene
+        self_registration_reason: Eintrittsgrund
+        self_registration_reason_text: Eintrittsgrund
+        self_registration_reason_custom_text: Benutzerdefinierter Eintrittsgrund
 
       person_duplicate:
         birth_year: Jahrgang
@@ -471,6 +511,7 @@ de:
         country: Land
         contact_id: Kontaktperson
         contact: Kontaktperson
+        contactable: Kontaktangaben
         phone_numbers: Telefonnummern
         social_accounts: Social Media
         additional_emails: Weitere E-Mails
@@ -482,14 +523,30 @@ de:
         description: Beschreibung
         member_count: Anzahl Mitglieder
         updated_at: Geändert
-        self_registration_role_type: Externe Registrierung
+        self_registration: Externe Registrierung
+        self_registration_role_type: Rollentyp
         self_registration_link: Externe Registrierung
-        self_registration_notification_email: Externe Registrierung Benachrichtigungs-E-Mail
+        self_registration_notification_email: Benachrichtigungs-E-Mail
+        self_registration_require_adult_consent: Einverständnis von Erziehungsberechtigten
+        main_self_registration_group: Anzeige auf Loginseite
+        custom_self_registration_title: Titel bei der Registrierung
         nextcloud_url: Link zu Nextcloud
         remove_logo: Aktuelles Gruppenlogo entfernen
         privacy_policy_title: DSE/Datenschutzerklärung Titel
         privacy_policy: DSE/Datenschutzerklärung
         remove_privacy_policy: DSE/Datenschutzerklärung entfernen
+        letter_logo: Brieflogo
+        remove_letter_logo: Brieflogo entfernen
+        letter_address_position: Adressposition
+        letter_address_positions:
+          left: Links
+          right: Rechts
+        text_message_provider: SMS Anbieter
+        text_message_providers:
+          aspsms: Aspsms
+        text_message_username: SMS Benutzername
+        text_message_password: SMS Password
+        text_message_originator: SMS Absender
 
       event:
         group_ids: Gruppen
@@ -638,6 +695,7 @@ de:
         participation: Person
         remove_participant_role: Allfällige Teilnehmer*Innen-Rolle entfernen
 
+
       family_member:
         kind: Verwandschaftsverhältnis
         kinds:
@@ -667,6 +725,8 @@ de:
         qualification_kind_id: Qualifikation
         start_at: Seit
         origin: Ursprung
+        finish_at: Bis
+        reactivateable_until: Reaktivierbar bis
         string: '%{kind}'
         string_with_origin: '%{kind} (von %{origin})'
         string_with_finish_at: '%{kind} (bis %{finish_at})'
@@ -715,7 +775,9 @@ de:
         string_long: '%{role} in %{group}'
         dates: Daten
         created_at: Von
-        deleted_at: Bis
+        deleted_t: Bis
+        delete_on: Bis
+        delete_on_in_name: bis
         class:
           archived: '%{role_kind} (archiviert)'
           permission:
@@ -734,6 +796,7 @@ de:
               approve_applications: Bestätigen der Kursanmeldungen für Personen dieser Ebene.
               finance: Erstellen und Verwalten von Rechnungen.
               impersonation: Hitobito als andere Person bedienen.
+              see_invisible_from_above: Sieht zusätzlich Personen, welche sonst von höheren Ebenen nicht eingesehen werden dürfen.
           kind:
             member:
               one: Mitglied
@@ -744,6 +807,9 @@ de:
             external:
               one: Extern
               other: Externe
+            future:
+              one: Zukünftig
+              other: Zukünftige
 
       contact_account:
         predefined_labels:
@@ -786,7 +852,16 @@ de:
         name: Name
         description: Beschreibung
         publisher: Herausgeber
-        subscribable: Abonnenten dürfen sich selbst an/abmelden
+        subscribable: Selbst an/abmelden
+        subscribable_mode: Personen sind standardmässig
+        subscribable_modes:
+          opt_out: Angemeldet (opt-out)
+          opt_in: Abgemeldet (opt-in)
+        subscribable_for: Selbst an/abmelden
+        subscribable_fors:
+          anyone: Alle
+          configured: Nur konfigurierte Abonnenten
+          nobody: Niemand
         mail_name: Mailinglisten Adresse
         mail_address: Mailingliste
         mail_address_link: Mailingliste
@@ -924,7 +999,9 @@ de:
           draft: Entwurf
           issued: Gestellt
           sent: per Mail versendet
+          partial: Teilzahlung
           payed: Bezahlt
+          excess: Überzahlung
           reminded: Gemahnt
           cancelled: Storniert
         recipient: Empfänger
@@ -933,6 +1010,7 @@ de:
         due_at: Fällig am
         issued_at: Gestellt am
         sent_at: Verschickt am
+        last_payment_at: Zahlung am
         cost: Betrag
         total: Rechnungsbetrag
         total_inkl_vat: Total inkl. MwSt.
@@ -973,18 +1051,20 @@ de:
         contact_id: Kontaktperson
         beneficiary: Zugunsten von
         email: Antwort an E-Mail Adresse
+        logo_position: Logo Position
+        logo_positions:
+          disabled: Kein Logo
+          left: Links
+          right: Rechts
         payee: Einzahlung für
         payment_slip: Einzahlungsschein
         payment_slips:
           qr: QR Rechnung
-          ch_es: Roter Einzahlungsschein Post (CH)
-          ch_bes: Roter Einzahlungsschein Bank (CH)
-          ch_esr: Oranger Einzahlungsschein Post (CH)
-          ch_besr: Oranger Einzahlungsschein Bank (CH)
           no_ps: Keiner
         participant_number: Teilnehmernummer
         participant_number_internal: Teilnehmernummer intern
         payment_reminder_configs: Mahnungen
+        remove_logo: Aktuelles Logo entfernen
         vat_number: MwSt. Nummer
         donation_increase_percentage: Erhöhung in %
         donation_calculation_year_amount: Anzahl Jahre
@@ -1027,6 +1107,8 @@ de:
         reference: Zahlungsreferenz
         transaction_identifier: Transaktionsidentifikator
         status: Status
+        payee_person_name: Schuldner Name
+        payee_person_address: Schuldner Adresse
 
       payment_reminder:
         invoice: Rechnung
@@ -1123,10 +1205,6 @@ de:
       on_or_before: "muss %{restriction} oder davor sein"
       after: "muss  nach %{restriction} sein"
       on_or_after: "muss %{restriction} oder danach sein"
-      # carrierwave
-      extension_whitelist_error: "akzeptiert nur die folgenden Dateitypen: %{allowed_types}"
-      dimensions_too_large: "akzeptiert nur Bilder mit einer Grösse kleiner als %{maximum} Pixel"
-      filesize_too_large: "darf nicht grösser als %{maximum} MB sein"
       # devise
       expired: "ist abgelaufen, bitte neu anfordern"
       not_found: "nicht gefunden"

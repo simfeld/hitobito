@@ -27,18 +27,20 @@ class People::OneTimePassword
   end
 
   def verify(token)
-    authenticator.verify(token)
+    drift = Settings.people.totp_drift
+    authenticator.verify(token, drift_ahead: drift, drift_behind: drift)
   end
-
-  private
-
-  attr_accessor :totp_secret, :person
 
   def secret
     base = "#{base_secret}-#{totp_secret}"
     sha = Digest::SHA512.hexdigest(base)
     base32_encode(sha)
   end
+
+  private
+
+  attr_accessor :totp_secret, :person
+
 
   def authenticator
     ROTP::TOTP.new(secret, issuer: issuer)

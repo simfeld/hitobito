@@ -406,7 +406,7 @@ describe Event::ParticipationsController do
         expect(pending_dj_handlers).to be_one{ |h| h =~ /Event::ParticipationConfirmationJob/}
 
         expect(flash[:notice]).to be_nil
-        expect(flash[:warn]).
+        expect(flash[:warning]).
           to include 'Es wurde eine Voranmeldung für Teilnahme von <i>Top Leader</i> in <i>Eventus</i> erstellt. Die Teilnahme ist noch nicht definitiv und muss von der Anlassverwaltung bestätigt werden.'
       end
 
@@ -422,7 +422,7 @@ describe Event::ParticipationsController do
         expect(pending_dj_handlers).to be_one{ |h| h =~ /Event::ParticipationConfirmationJob/}
 
         expect(flash[:notice]).to be_nil
-        expect(flash[:warn]).
+        expect(flash[:warning]).
           to include 'Es wurde eine Voranmeldung für Teilnahme von <i>Top Leader</i> in <i>Eventus</i> erstellt. Die Teilnahme ist noch nicht definitiv und muss von der Anlassverwaltung bestätigt werden.'
         expect(flash[:alert]).to include 'Es sind derzeit alle Plätze belegt, die Anmeldung ist auf der Warteliste.'
       end
@@ -440,7 +440,7 @@ describe Event::ParticipationsController do
 
         expect(flash[:notice]).
           to include 'Teilnahme von <i>Top Leader</i> in <i>Eventus</i> wurde erfolgreich erstellt. Bitte überprüfe die Kontaktdaten und passe diese gegebenenfalls an.'
-        expect(flash[:warn]).to be_nil
+        expect(flash[:warning]).to be_nil
       end
 
       it 'creates non-active participant role for course events' do
@@ -462,7 +462,7 @@ describe Event::ParticipationsController do
         expect(participation.application).to be_present
 
         expect(flash[:notice]).to be_nil
-        expect(flash[:warn]).
+        expect(flash[:warning]).
           to include 'Es wurde eine Voranmeldung für Teilnahme von <i>Top Leader</i> in <i>Eventus</i> erstellt. Die Teilnahme ist noch nicht definitiv und muss von der Anlassverwaltung bestätigt werden.'
       end
 
@@ -484,7 +484,7 @@ describe Event::ParticipationsController do
         expect(role).to be_kind_of(TestParticipant)
 
         expect(flash[:notice]).to be_nil
-        expect(flash[:warn]).
+        expect(flash[:warning]).
           to include 'Es wurde eine Voranmeldung für Teilnahme von <i>Top Leader</i> in <i>Eventus</i> erstellt. Die Teilnahme ist noch nicht definitiv und muss von der Anlassverwaltung bestätigt werden.'
       end
 
@@ -511,7 +511,7 @@ describe Event::ParticipationsController do
         expect(application.priority_2_id).to eq other_course.id
 
         expect(flash[:notice]).to be_nil
-        expect(flash[:warn]).
+        expect(flash[:warning]).
           to include 'Es wurde eine Voranmeldung für Teilnahme von <i>Top Leader</i> in <i>Eventus</i> erstellt. Die Teilnahme ist noch nicht definitiv und muss von der Anlassverwaltung bestätigt werden.'
       end
 
@@ -816,7 +816,6 @@ describe Event::ParticipationsController do
   end
 
   context 'table_displays' do
-
     render_views
     let(:dom)           { Capybara::Node::Simple.new(response.body) }
     let(:top_leader)    { people(:top_leader) }
@@ -861,6 +860,17 @@ describe Event::ParticipationsController do
       expect(dom.find('table tbody tr')).to have_content 'GA'
     end
 
+    it 'GET#index handles missing event application answer gracefully' do
+      TableDisplay.register_multi_column(Event::Participation, TableDisplays::Event::Participations::QuestionColumn)
+      table_display = top_leader.table_display_for(Event::Participation)
+      table_display.selected = %W[event_question_#{question.id}]
+      table_display.save!
+
+      get :index, params: { group_id: group.id, event_id: course.id }
+      expect(dom).to have_checked_field 'GA oder Halbtax?'
+      # successfully renders, even though no answer is present in the database
+    end
+
     it 'GET#index sorts by extra event application question' do
       TableDisplay.register_multi_column(Event::Participation, TableDisplays::Event::Participations::QuestionColumn)
       table_display = top_leader.table_display_for(Event::Participation)
@@ -884,6 +894,83 @@ describe Event::ParticipationsController do
       )
       expect(Delayed::Job.last.payload_object.send(:exporter))
         .to eq Export::Tabular::Event::Participations::TableDisplays
+    end
+  end
+
+  context 'table_displays as configured in the core' do
+    render_views
+    let(:dom) { Capybara::Node::Simple.new(response.body) }
+    let(:course) { Fabricate(:course, groups: [groups(:bottom_layer_two)], participations_visible: true) }
+    let(:group) { Fabricate(Group::TopGroup.name, parent: groups(:top_group)) }
+    let(:user) { Fabricate(:person) }
+    let!(:role) { Fabricate(Group::BottomLayer::Leader.name, person: user, group: groups(:bottom_layer_one)) }
+    let!(:participation) { Fabricate(:event_participation, person: user, event: course, active: true) }
+    let(:other_person) { Fabricate(:person, birthday: Date.new(2003, 03, 03), company_name: 'Puzzle ITC Test') }
+    let!(:other_role) { Fabricate(Group::TopGroup::Member.name, person: other_person, group: group) }
+    let!(:other_participation) { Fabricate(:event_participation, person: other_person, event: course, active: true) }
+    let!(:other_event_role) { Fabricate(Event::Course::Role::Participant.name, participation: other_participation) }
+
+    before { sign_in(user.reload) }
+
+    context 'with show_details permission' do
+      let!(:role2) { Fabricate(Group::TopLayer::TopAdmin.name, person: user, group: groups(:top_layer)) }
+      let!(:event_role) { Fabricate(Event::Course::Role::Participant.name, participation: participation) }
+
+      it 'GET#index lists extra public column' do
+        user.table_display_for(Event::Participation).update!(selected: %w(person.company_name))
+
+        get :index, params: { group_id: group.id, event_id: course.id }
+        expect(dom).to have_checked_field 'Firmenname'
+        expect(dom.find('table tbody')).to have_content 'Puzzle ITC Test'
+      end
+
+      it 'GET#index lists extra show_full column' do
+        user.table_display_for(Event::Participation).update!(selected: %w(person.birthday))
+
+        get :index, params: { group_id: group.id, event_id: course.id }
+        expect(dom).to have_checked_field 'Geburtstag'
+        expect(dom.find('table tbody')).to have_content '03.03.2003'
+      end
+    end
+
+    context 'without show_details permission' do
+      let!(:event_role) { Fabricate(Event::Course::Role::Participant.name, participation: participation) }
+
+      it 'GET#index lists extra public column' do
+        user.table_display_for(Event::Participation).update!(selected: %w(person.company_name))
+
+        get :index, params: { group_id: group.id, event_id: course.id }
+        expect(dom).to have_checked_field 'Firmenname'
+        expect(dom.find('table tbody')).to have_content 'Puzzle ITC Test'
+      end
+
+      it 'GET#index lists extra show_full column, but does not expose data' do
+        user.table_display_for(Event::Participation).update!(selected: %w(person.birthday))
+
+        get :index, params: { group_id: group.id, event_id: course.id }
+        expect(dom).to have_checked_field 'Geburtstag'
+        expect(dom.find('table tbody')).not_to have_content '03.03.2003'
+      end
+    end
+
+    context 'as event leader' do
+      let!(:event_role) { Fabricate(Event::Role::Leader.name, participation: participation) }
+
+      it 'GET#index lists extra public column' do
+        user.table_display_for(Event::Participation).update!(selected: %w(person.company_name))
+
+        get :index, params: { group_id: group.id, event_id: course.id }
+        expect(dom).to have_checked_field 'Firmenname'
+        expect(dom.find('table tbody')).to have_content 'Puzzle ITC Test'
+      end
+
+      it 'GET#index lists extra show_full column' do
+        user.table_display_for(Event::Participation).update!(selected: %w(person.birthday))
+
+        get :index, params: { group_id: group.id, event_id: course.id }
+        expect(dom).to have_checked_field 'Geburtstag'
+        expect(dom.find('table tbody')).to have_content '03.03.2003'
+      end
     end
 
   end

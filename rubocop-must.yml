@@ -1,6 +1,7 @@
 # Rubocop configuration that MUST hold for every build.
 
 AllCops:
+  TargetRubyVersion: 3.0
   DisplayCopNames: true
   DisabledByDefault: true
   Exclude:
@@ -14,6 +15,9 @@ AllCops:
     - vendor/bundle/**/*
     - node_modules/**/*
 
+Layout/LineLength:
+  Max: 100
+  IgnoreCopDirectives: true
 
 Metrics/CyclomaticComplexity:
   Max: 8  # Try to reduce this value
@@ -21,15 +25,11 @@ Metrics/CyclomaticComplexity:
 Metrics/ClassLength:
   Max: 220  # Try to reduce this value
 
-Metrics/LineLength:
-  Max: 100
-  IgnoreCopDirectives: true
-
 Metrics/MethodLength:
   Max: 18  # Try to reduce this value
 
 Metrics/ModuleLength:
-  Max: 200 # Try to reduce this value
+  Max: 200  # Try to reduce this value
 
 Metrics/ParameterLists:
   Max: 6

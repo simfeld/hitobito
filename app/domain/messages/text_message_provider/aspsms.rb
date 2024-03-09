@@ -15,7 +15,7 @@ module Messages
 
       SEND_URL = 'https://json.aspsms.com/SendSimpleTextSMS'
       DELIVERY_REPORTS_URL = 'https://json.aspsms.com/InquireDeliveryNotifications'
-      MAX_CHARS = 160
+      MAX_CHARS = 603
 
       STATUS = {
         '0' => STATUS_OK,
@@ -25,7 +25,7 @@ module Messages
 
       def send(text:, recipients: [])
         params = default_params
-        params[:Originator] = @config.originator
+        params[:Originator] = @config['originator']
         params[:MessageText] = text[0..MAX_CHARS - 1]
         params[:Recipients] = recipients[0..MAX_RECIPIENTS - 1]
         params[:AffiliateID] = affiliate_id if affiliate_id.present?
@@ -74,8 +74,8 @@ module Messages
       end
 
       def default_params
-        { UserName: @config.username,
-          Password: @config.password }
+        { UserName: @config['username'],
+          Password: @config['password'] }
       end
 
       def affiliate_id

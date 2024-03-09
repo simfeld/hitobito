@@ -335,9 +335,9 @@ describe Group do
 
   context '.all_types' do
     it 'lists all types' do
-      expect(Group.all_types.count).to eq(5)
+      expect(Group.all_types.count).to eq(6)
       [Group::TopLayer, Group::TopGroup, Group::BottomLayer, Group::BottomGroup,
-       Group::GlobalGroup].each do |t|
+       Group::GlobalGroup, Group::MountedAttrsGroup].each do |t|
         expect(Group.all_types).to include(t)
       end
     end
@@ -598,40 +598,70 @@ describe Group do
     end
 
     context 'archive!' do
-      it 'archives all roles with same timestamp' do
-        group = groups(:top_group)
 
-        group.archive!
+      describe 'roles' do
+        let(:group) { groups(:top_group) }
+        let(:role) { roles(:top_leader) }
 
-        expect(group).to be_archived
-        role = group.roles.first
+        it 'archives all roles with same timestamp' do
+          group.archive!
 
-        expect(role).to be_archived
-        expect(group.archived_at).to eq(role.archived_at)
+          expect(group).to be_archived
+          expect(role).to be_archived
+          expect(group.archived_at).to eq(role.archived_at)
+        end
+
+        it 'future delete_on values are set to nil' do
+          role.update!(delete_on: 3.days.from_now)
+          group.archive!
+
+          expect(group).to be_archived
+          expect(role.reload.delete_on).to be_nil
+        end
+
+        it 'past delete_on values are kept' do
+          role.update!(created_at: 5.days.ago, delete_on: 3.days.ago)
+          group.archive!
+
+          expect(group).to be_archived
+          expect(role.reload.delete_on).to be_present
+        end
+
+        it 'future roles are hard deleted' do
+          Fabricate(:future_role,
+                    person: role.person,
+                    group: group,
+                    convert_to: group.role_types.first)
+          expect do
+            group.archive!
+          end.to change { group.roles.with_deleted.future.count }.by(-1)
+
+          expect(group).to be_archived
+        end
       end
 
-      it 'deletes all attached mailing lists' do
-        group = groups(:top_layer)
+      describe 'mailing lists' do
+        let(:group) { groups(:top_layer) }
 
-        expect(group.mailing_lists.size).to eq(2)
+        it 'deletes all attached mailing lists' do
+          expect(group.mailing_lists.size).to eq(2)
 
-        expect do
-          group.archive!
-        end.to change { MailingList.count }.by(-2)
+          expect do
+            group.archive!
+          end.to change { MailingList.count }.by(-2)
 
-        expect(group.mailing_lists).to be_empty
-      end
+          expect(group.mailing_lists).to be_empty
+        end
 
-      it 'deletes all attached subscriptions' do
-        group = groups(:top_layer)
+        it 'deletes all attached subscriptions' do
+          expect(group.subscriptions.size).to eq(1)
 
-        expect(group.subscriptions.size).to eq(1)
+          expect do
+            group.archive!
+          end.to change { Subscription.count }.by(-1)
 
-        expect do
-          group.archive!
-        end.to change { Subscription.count }.by(-1)
-
-        expect(group.subscriptions).to be_empty
+          expect(group.subscriptions).to be_empty
+        end
       end
     end
 
@@ -662,6 +692,210 @@ describe Group do
     it 'has the nextcloud_url' do
       expect(described_class.used_attributes).to include(:nextcloud_url)
       expect(subject.used_attributes).to include(:nextcloud_url)
+    end
+  end
+
+  context 'mounted attributes' do
+
+    let(:top_layer) { groups(:top_layer) }
+
+    it 'saves attribute for specific group type' do
+      top_layer.foundation_year = 1892
+      top_layer.custom_name = 'Töp'
+
+      expect do
+        top_layer.save!
+      end.to change { MountedAttribute.count }.by(2)
+
+      top_layer.reload
+
+      expect(top_layer.foundation_year).to eq(1892)
+      expect(top_layer.custom_name).to eq('Töp')
+    end
+
+    it 'does not persists attribute entry if default value' do
+      # 1942 is configured default value for foundation_year
+      expect(top_layer.foundation_year).to eq(1942)
+
+      expect do
+        top_layer.save!
+      end.not_to change { MountedAttribute.count }
+
+      expect(top_layer.foundation_year).to eq(1942)
+    end
+
+    it 'does not persist attribute entry if nil value' do
+      top_layer.custom_name = nil
+
+      expect do
+        top_layer.save!
+      end.not_to change { MountedAttribute.count }
+
+      top_layer.reload
+
+      expect(top_layer.custom_name).to be_blank
+      expect(top_layer.foundation_year).to eq(1942)
+    end
+
+    it 'does not persist attribute entry if validation error for mounted attribute' do
+      top_layer.foundation_year = 300
+
+      expect do
+        top_layer.save
+      end.not_to change { MountedAttribute.count }
+
+      expect(top_layer.errors).to be_present
+      expect(top_layer.errors.first.message).to eq('muss grösser als 1850 sein')
+    end
+
+    it 'only allows value defined in enum' do
+      top_layer.shirt_size = 'ns'
+
+      expect do
+        top_layer.save
+      end.not_to change { MountedAttribute.count }
+
+      expect(top_layer.errors).to be_present
+      expect(top_layer.errors.first.message).to eq('ist kein gültiger Wert')
+
+      top_layer.shirt_size = 'l'
+
+      expect do
+        top_layer.save!
+      end.to change { MountedAttribute.count }.by(1)
+
+      top_layer.reload
+      expect(top_layer.shirt_size).to eq('l')
+    end
+
+    it 'returns mounted attr configs by category' do
+      configs_by_category = top_layer.class.mounted_attr_configs_by_category
+      expect(configs_by_category.keys).to eq([:custom_cat, :default])
+
+      default_attr_names = configs_by_category[:default].collect(&:attr_name)
+      expect(default_attr_names).to include(:foundation_year)
+      expect(default_attr_names).to include(:shirt_size)
+
+      custom_cat_attr_names = configs_by_category[:custom_cat].collect(&:attr_name)
+      expect(custom_cat_attr_names).to include(:custom_name)
+    end
+
+  end
+
+  context 'name' do
+    let(:group) { groups(:bottom_layer_one) }
+
+    context 'with static_name=false' do
+      before { group.static_name = false }
+
+      it '#name returns name' do
+        expect(group.name).to eq 'Bottom One'
+      end
+
+      it '#name= sets name' do
+        expect { group.name = 'Another Name' }.
+          to change { group.read_attribute(:name) }.to('Another Name')
+      end
+    end
+
+    context 'with static_name=true' do
+      before { group.static_name = true }
+      after { group.static_name = false }
+
+      it '#name returns class label' do
+        expect(group.name).to eq 'Bottom Layer'
+      end
+
+      it '#name= noops' do
+         expect { group.name = 'Another Name' }.
+           not_to change { group.read_attribute(:name) }
+      end
+    end
+  end
+
+  context 'type' do
+    let(:group) { groups(:bottom_group_two_one) }
+    let(:duplicate) { group.dup }
+
+    context 'with static_name=false' do
+      before { group.class.static_name = false }
+
+      it 'uniqueness is not validated' do
+        duplicate.validate
+        expect(duplicate.errors[:type]).to be_empty
+      end
+    end
+
+    context 'with static_name=true' do
+      before { group.class.static_name = true }
+      after { group.class.static_name = false }
+
+      it 'uniqueness is validated for same parent_id' do
+        duplicate.validate
+        expect(duplicate.errors[:type]).to include('ist bereits vergeben')
+      end
+
+      it 'uniqueness is not validated for different parent_id' do
+        duplicate.parent_id = 99999
+        duplicate.validate
+        expect(duplicate.errors[:type]).to be_empty
+      end
+    end
+  end
+
+  context 'addable_child_types' do
+    let(:group) { Fabricate(Group::BottomLayer.name) }
+    let(:child_type) { Group::BottomGroup }
+
+    context 'with static_name=false' do
+      before { child_type.static_name = false }
+
+      it 'when no children exist returns possible_children' do
+        expect(group.addable_child_types).to match_array([
+                                                        Group::BottomGroup,
+                                                        Group::MountedAttrsGroup,
+                                                        Group::GlobalGroup
+                                                      ])
+      end
+
+      it 'when children exist returns possible_children' do
+        Fabricate(Group::BottomGroup.name, parent: group)
+        expect(group.addable_child_types).to match_array([
+                                                        Group::BottomGroup,
+                                                        Group::MountedAttrsGroup,
+                                                        Group::GlobalGroup
+                                                      ])
+      end
+    end
+
+    context 'with static_name=true' do
+      before { child_type.static_name = true }
+      after { child_type.static_name = false }
+
+      it 'when no children exist returns possible_children' do
+        expect(group.addable_child_types).to match_array([
+                                                        Group::BottomGroup,
+                                                        Group::MountedAttrsGroup,
+                                                        Group::GlobalGroup
+                                                      ])
+      end
+
+      it 'when only deleted children exist returns possible_children' do
+        Fabricate(Group::BottomGroup.name, parent: group, deleted_at: 1.day.ago)
+        expect(group.addable_child_types).to match_array([
+                                                        Group::BottomGroup,
+                                                        Group::MountedAttrsGroup,
+                                                        Group::GlobalGroup
+                                                      ])
+      end
+
+      it 'when children exist returns possible_children minus existing child types' do
+        Fabricate(Group::BottomGroup.name, parent: group)
+        expect(group.addable_child_types).to match_array([
+                                                        Group::MountedAttrsGroup,
+                                                        Group::GlobalGroup
+                                                      ])
+      end
     end
   end
 end

@@ -6,24 +6,22 @@
 class Person::SubscriptionsController < ApplicationController
 
   skip_authorization_check
+  helper_method :subscribed, :subscribable
 
   def index
     authorize!(:show_details, person)
     @group = Group.find(params[:group_id])
-
-    @subscribed = Person::Subscriptions.new(person).mailing_lists.includes(:group).list
-    @subscribable = MailingList.includes(:group).subscribable.where.not(id: @subscribed).list
   end
 
   def create
     authorize!(:update, person)
-    create_subscription
+    subscriptions.create(mailing_list)
     redirect_with_notice
   end
 
   def destroy
     authorize!(:update, person)
-    delete_subscription || create_subscription(excluded: true)
+    subscriptions.destroy(mailing_list)
     redirect_with_notice
   end
 
@@ -43,12 +41,22 @@ class Person::SubscriptionsController < ApplicationController
     @mailing_list ||= MailingList.find(params[:id])
   end
 
-  def delete_subscription
-    mailing_list.subscriptions.find_by(subscriber: person)&.destroy
+  def subscribed
+    @subscribed ||= grouped_by_layer(subscriptions.subscribed.list)
   end
 
-  def create_subscription(options = {})
-    mailing_list.subscriptions.create(options.merge(subscriber: person))
+  def subscribable
+    @subscribable ||= grouped_by_layer(
+      subscriptions.subscribable.where.not(id: subscriptions.subscribed).list
+    )
   end
+
+  def subscriptions
+    @subscriptions ||= Person::Subscriptions.new(person)
+  end
+
+  def grouped_by_layer(mailing_lists)
+    mailing_lists.includes(:group).group_by { _1.group.layer_group }
+  end
+
 end
-

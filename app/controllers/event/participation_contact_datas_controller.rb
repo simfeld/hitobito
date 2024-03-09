@@ -22,11 +22,7 @@ class Event::ParticipationContactDatasController < ApplicationController
     if entry.valid? && privacy_policy_accepted? && entry.save
       set_privacy_policy_acceptance if privacy_policy_needed_and_accepted?
 
-      redirect_to new_group_event_participation_path(
-        group,
-        event,
-        event_role: { type: params[:event_role][:type] }
-      )
+      redirect_to after_update_success_path
     else
       add_privacy_policy_not_accepted_error(entry)
       render :edit
@@ -35,21 +31,37 @@ class Event::ParticipationContactDatasController < ApplicationController
 
   private
 
+  def after_update_success_path
+    new_group_event_participation_path(
+      group,
+      event,
+      event_role: { type: params[:event_role][:type] }
+    )
+  end
+
   def entry
     @participation_contact_data
   end
 
   def build_entry
-    Event::ParticipationContactData.new(event, current_user)
+    contact_data_class.new(event, person)
   end
 
   def set_entry
     @participation_contact_data =
-      if params[:event_participation_contact_data]
-        Event::ParticipationContactData.new(event, current_user, model_params)
+      if params[model_identifier]
+        contact_data_class.new(event, person, model_params)
       else
         build_entry
       end
+  end
+
+  def model_identifier
+    contact_data_class.to_s.underscore.gsub('/', '_')
+  end
+
+  def contact_data_class
+    Event::ParticipationContactData
   end
 
   def event
@@ -61,7 +73,7 @@ class Event::ParticipationContactDatasController < ApplicationController
   end
 
   def model_params
-    params.require('event_participation_contact_data').permit(permitted_attrs)
+    params.require(model_identifier).permit(permitted_attrs)
   end
 
   def permitted_attrs
@@ -69,7 +81,7 @@ class Event::ParticipationContactDatasController < ApplicationController
   end
 
   def person
-    @person ||= entry.person
+    @person ||= entry&.person || current_user
   end
 
   def privacy_policy_param

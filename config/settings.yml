@@ -1,4 +1,4 @@
-#  Copyright (c) 2012-2013, Jungwacht Blauring Schweiz. This file is part of
+#  Copyright (c) 2012-2024, Jungwacht Blauring Schweiz. This file is part of
 #  hitobito and licensed under the Affero General Public License version 3
 #  or later. See the COPYING file at the top-level directory or at
 #  https://github.com/hitobito/hitobito.
@@ -13,6 +13,12 @@ application:
     height: 30 # pixel, has to bet set as the logo is a background image,
     width: 230 # pixel, will also set the minimal width of the navigation
     background_color: none # optional backgroundcolor, creates a box around the logo, if changed from 'none'
+  image_upload:
+    max_dimension: 8000 # pixel
+    content_types:
+      - image/jpeg
+      - image/gif
+      - image/png
   footer:
     #logo_image: logo_hitobito.png
     logo_url: http://puzzle.ch
@@ -122,9 +128,9 @@ countries:
 
 # Presets for CSV export
 csv:
-  # optimized for M$ Excel
   separator: ;
-  encoding: ISO-8859-1
+  encoding: UTF-8
+  utf8_bom: true # allowing M$ Excel to read UTF-8
 
 # Presets for XLSX export
 xlsx:
@@ -141,11 +147,25 @@ people:
   # either name or role
   default_sort: name
   abos: true
+  totp_drift: 15
+  manual_deletion:
+    enabled: false
+  cleanup_job:
+    enabled: false
+  cleanup_cutoff_duration:
+    regarding_current_sign_in_at: 1000 # months
+    regarding_roles: 1000 # months
+    regarding_event_participations: 100 # years
+  inactivity_block:
+    # durations must be specified in ISO_8601 format.
+    # see https://en.wikipedia.org/wiki/ISO_8601#Durations
+    warn_after: # e.g. P18M
+    block_after: # e.g. P1M
+  family_members:
+    enabled: true
 
 event:
   attachments:
-    # file_extensions is carrierwave, content_types is activestorage
-    file_extensions: jpg jpeg gif png pdf txt rtf doc docx xls xlsx ppt pptx odt ods odp zip
     content_types:
       - image/jpeg
       - image/gif
@@ -165,6 +185,8 @@ event:
       - application/zip
     max_file_size: 10 # MB
   globally_visible_by_default: true # previous behaviour
+  participations:
+    delete_additional_information_after_months: 1200
 
 downloads:
   folder: <%= Rails.root.join('tmp', 'downloads') %>
@@ -191,9 +213,9 @@ help_text_blacklist:
   mailing_list:
     - anyone_may_post
     - delivery_report
-  oauth_application:
+  doorkeeper/application:
     - confidential
-    - redirect_uris
+    - redirect_uri
     - scopes
   person:
     - household_people_ids
@@ -226,6 +248,7 @@ messages:
   enable_writing: false
   pdf:
     preview: <%= Rails.root.join("app/javascript/images/preview.png") %>
+  body_font_size: 9
 
 groups:
   self_registration:

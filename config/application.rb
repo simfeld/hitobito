@@ -5,7 +5,17 @@
 
 require_relative 'boot'
 
-require 'rails/all'
+railties = %w[
+  active_record/railtie
+  active_storage/engine
+  action_controller/railtie
+  action_view/railtie
+  action_mailer/railtie
+  active_job/railtie
+  action_text/engine
+  rails/test_unit/railtie
+  sprockets/railtie
+].each { |railtie| require railtie }
 
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
@@ -66,7 +76,7 @@ module Hitobito
 
     config.active_record.time_zone_aware_types = [:datetime, :time]
 
-    config.active_record.yaml_column_permitted_classes = [Symbol, ActiveSupport::HashWithIndifferentAccess]
+    config.active_record.yaml_column_permitted_classes = [Symbol, ActiveSupport::HashWithIndifferentAccess, Time, Date]
 
     # Deviate from default here for now, revisit later
     config.active_record.belongs_to_required_by_default = false
@@ -88,6 +98,9 @@ module Hitobito
       logger.formatter = config.log_formatter
       config.logger = ActiveSupport::TaggedLogging.new(logger)
     end
+
+    config.responders.error_status = :unprocessable_entity
+    config.responders.redirect_status = :see_other
 
     config.generators do |g|
       g.test_framework :rspec, fixture: true
@@ -131,4 +144,9 @@ module Hitobito
   end
 end
 
+# PDF's built-in fonts have very limited support for internationalized text.
+# If you need full UTF-8 support, consider using an external font instead.
+# To disable this warning, add the following line to your code:
+# Prawn::Fonts::AFM.hide_m17n_warning = true
+Prawn::Fonts::AFM.hide_m17n_warning = true
 require 'prawn/measurement_extensions'

@@ -30,9 +30,9 @@ module Dropdown
     private
 
     def pdf_links
-      add_item(translate(:full), export_path(:pdf), item_options)
-      add_item(translate(:articles_only), export_path(:pdf, payment_slip: false), item_options)
-      add_item(translate(:esr_only), export_path(:pdf, articles: false), item_options)
+      add_item(translate(:full), export_path(:pdf), **item_options)
+      add_item(translate(:articles_only), export_path(:pdf, payment_slip: false), **item_options)
+      add_item(translate(:esr_only), export_path(:pdf, articles: false), **item_options)
     end
 
     def label_links
@@ -42,7 +42,9 @@ module Dropdown
     end
 
     def csv_links
-      add_item(translate(:csv), export_path(:csv), item_options)
+      add_item(translate(:csv), export_path(:csv), **item_options)
+      add_item(translate(:payments_without_invoice_csv),
+               payment_export_path(:csv, { state: :without_invoice }))
     end
 
     def item_options
@@ -51,6 +53,10 @@ module Dropdown
 
     def export_path(format, options = {})
       params.merge(options).merge(format: format)
+    end
+
+    def payment_export_path(format, options = {})
+      template.group_payments_path(params.to_unsafe_h.merge(options).merge(format: format))
     end
   end
 end

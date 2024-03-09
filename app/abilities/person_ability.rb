@@ -17,10 +17,11 @@ class PersonAbility < AbilityDsl::Base
     permission(:admin).may(:totp_reset).all
     permission(:admin).may(:totp_disable).if_two_factor_authentication_not_enforced
 
-    permission(:any).
-      may(:show, :show_details, :show_full, :history, :update, :update_email, :primary_group, :log,
-          :update_settings, :totp_reset).
+    permission(:any).may(:show, :update, :update_email, :primary_group, :totp_reset).
       herself
+    permission(:any).
+      may(:show_details, :show_full, :history, :log, :index_invoices, :update_settings).
+      herself_unless_only_basic_permissions_roles
     permission(:any).may(:totp_disable).herself_if_two_factor_authentication_not_enforced
 
     permission(:contact_data).may(:show).other_with_contact_data
@@ -58,6 +59,7 @@ class PersonAbility < AbilityDsl::Base
     permission(:layer_full).may(:update_email).if_permissions_in_all_capable_groups_or_layer
     permission(:layer_full).may(:create).all # restrictions are on Roles
     permission(:layer_full).may(:show).deleted_people_in_same_layer
+    permission(:layer_full).may(:totp_reset).in_same_layer
 
     permission(:layer_and_below_read).
       may(:show, :show_full, :show_details, :history).
@@ -71,11 +73,10 @@ class PersonAbility < AbilityDsl::Base
       if_permissions_in_all_capable_groups_or_layer_or_above
     permission(:layer_and_below_full).may(:create).all # restrictions are on Roles
     permission(:layer_and_below_full).may(:show).deleted_people_in_same_layer_or_below
+    permission(:layer_and_below_full).may(:totp_reset).in_same_layer_or_below
 
     permission(:finance).may(:index_invoices).in_same_layer_or_below
     permission(:finance).may(:create_invoice).in_same_layer_or_below
-
-    permission(:any).may(:index_invoices).herself
 
     permission(:admin).may(:show).people_without_roles
 
@@ -84,6 +85,14 @@ class PersonAbility < AbilityDsl::Base
     permission(:any).may(:update_password).if_password_present
 
     general(:send_password_instructions).not_self
+
+    class_side(:create_households).if_any_writing_permissions
+  end
+
+  def if_any_writing_permissions
+    writing_permissions = [:group_full, :group_and_below_full,
+                           :layer_full, :layer_and_below_full]
+    contains_any?(writing_permissions, user_context.all_permissions)
   end
 
   def in_layer_group
@@ -104,6 +113,12 @@ class PersonAbility < AbilityDsl::Base
 
   def herself_if_two_factor_authentication_not_enforced
     herself && if_two_factor_authentication_not_enforced
+  end
+
+  def herself_unless_only_basic_permissions_roles
+    return false if user.roles.any? && user.basic_permissions_only?
+
+    herself
   end
 
   def if_password_present

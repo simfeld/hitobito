@@ -1,6 +1,6 @@
-# encoding: utf-8
+# frozen_string_literal: true
 
-#  Copyright (c) 2012-2017, Jungwacht Blauring Schweiz. This file is part of
+#  Copyright (c) 2012-2023, Jungwacht Blauring Schweiz. This file is part of
 #  hitobito and licensed under the Affero General Public License version 3
 #  or later. See the COPYING file at the top-level directory or at
 #  https://github.com/hitobito/hitobito.
@@ -16,14 +16,14 @@ describe Export::Tabular::People::PeopleAddress do
   subject { people_list }
 
   let(:data) { Export::Tabular::People::PeopleAddress.export(:csv, list) }
-  let(:csv) { CSV.parse(data, headers: true, col_sep: Settings.csv.separator) }
+  let(:data_without_bom) { data.gsub(Regexp.new("^#{Export::Csv::UTF8_BOM}"), '') }
+  let(:csv) { CSV.parse(data_without_bom, headers: true, col_sep: Settings.csv.separator) }
 
 
   context 'headers' do
     let(:simple_headers) do
       ['Vorname', 'Nachname', 'Übername', 'Firmenname', 'Firma', 'Haupt-E-Mail',
-       'Adresse', 'PLZ', 'Ort', 'Land', 'Geschlecht', 'Geburtstag', 'Hauptebene',
-       'Rollen', 'Tags']
+       'Adresse', 'PLZ', 'Ort', 'Land', 'Hauptebene', 'Rollen']
     end
 
     subject { csv }
@@ -39,7 +39,6 @@ describe Export::Tabular::People::PeopleAddress do
     its(['Nachname']) { should eq person.last_name }
     its(['Haupt-E-Mail']) { should eq person.email }
     its(['Ort']) { should eq person.town }
-    its(['Geschlecht']) { should eq 'unbekannt' }
     its(['Hauptebene']) { should eq 'Top' }
 
     context 'roles and phone number' do
@@ -50,7 +49,7 @@ describe Export::Tabular::People::PeopleAddress do
         person.additional_emails.create!(label: 'Mutter', email: 'mutter@example.com', public: false)
       end
 
-      its(['Telefonnummer Vater']) { should eq '+41 44 123 45 67' }
+      its(['Telefonnummer Vater']) { should eq '\'+41 44 123 45 67' }
       its(['Weitere E-Mail Vater']) { should eq 'vater@example.com' }
       its(['Weitere E-Mail Mutter']) { should be_nil }
 

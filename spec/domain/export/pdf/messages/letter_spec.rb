@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-#  Copyright (c) 2020-2021, CVP Schweiz. This file is part of
+#  Copyright (c) 2020-2023, CVP Schweiz. This file is part of
 #  hitobito and licensed under the Affero General Public License version 3
 #  or later. See the COPYING file at the top-level directory or at
 #  https://github.com/hitobito/hitobito.
@@ -82,8 +82,10 @@ describe Export::Pdf::Messages::Letter do
 
       it 'renders example letter' do
         options[:debug] = true
-        image = fixture_file_upload('images/logo.png')
-        GroupSetting.create!(target: groups(:top_group), var: :messages_letter, picture: image).id
+        group.letter_logo.attach(
+          io: File.open('spec/fixtures/files/images/logo.png'),
+          filename: 'logo.png'
+        )
         letter.update!(group: groups(:top_group))
         layer.update!(address: 'Lakeview 42', zip_code: '4242', town: 'Bern')
         IO.binwrite('/tmp/file.pdf', subject.render)
@@ -243,7 +245,7 @@ describe Export::Pdf::Messages::Letter do
         [71, 654, 'Anton Abraham, Zora Zaugg'],
         [71, 644, housemate1.address],
         [71, 633, "#{housemate1.zip_code} #{housemate1.town}"],
-        [71, 623, 'DE'],
+        [71, 623, housemate1.country],
         [71, 531, 'Information'],
         [71, 502, 'Hallo'],
         [71, 481, 'Wir laden '],
@@ -280,8 +282,8 @@ describe Export::Pdf::Messages::Letter do
       Messages::LetterDispatch.new(letter).run
 
       expect(text_with_position).to match_array [
-        [71, 654, 'Anton Abraham, Top Leader, Altra Mates, Bottom Member, Zora'],
-        [71, 644, 'Zaugg'],
+        [71, 654, 'Anton Abraham, Top Leader, Altra'],
+        [71, 644, 'Mates, Bottom Member, Zora Zaugg'],
         [71, 633, 'Greatstreet 345'],
         [71, 623, '3456 Greattown'],
         [71, 531, 'Information'],
@@ -365,13 +367,13 @@ describe Export::Pdf::Messages::Letter do
           [71, 654, 'Anton Abraham, Zora Zaugg'],
           [71, 644, housemate1.address],
           [71, 633, "#{housemate1.zip_code} #{housemate1.town}"],
-          [71, 623, 'DE'],
+          [71, 623, housemate1.country],
           [71, 531, 'Brief'],
           [71, 502, 'Hallo'],
           [71, 654, 'Bettina Büttel, Carlo Colorado'],
           [71, 644, housemate3.address],
           [71, 633, "#{housemate3.zip_code} #{housemate3.town}"],
-          [71, 623, 'DE'],
+          [71, 623, housemate3.country],
           [71, 531, 'Brief'],
           [71, 502, 'Hallo'],
           [71, 654, 'Bottom Member'],
@@ -382,7 +384,7 @@ describe Export::Pdf::Messages::Letter do
           [71, 654, 'Dominik Dachs'],
           [71, 644, single_person.address],
           [71, 633, "#{single_person.zip_code} #{single_person.town}"],
-          [71, 623, 'DE'],
+          [71, 623, single_person.country],
           [71, 531, 'Brief'],
           [71, 502, 'Hallo']
         ]
@@ -393,10 +395,11 @@ describe Export::Pdf::Messages::Letter do
         create_household(housemate1, housemate4)
 
         expect(text_with_position).to match_array [
-          [71, 654, 'Anton Abraham, Bettina Büttel, Carlo Colorado, Zora Zaugg'],
-          [71, 644, housemate1.address],
-          [71, 633, "#{housemate1.zip_code} #{housemate1.town}"],
-          [71, 623, 'DE'],
+          [71, 654, 'Anton Abraham, Bettina Büttel, Carlo'],
+          [71, 644, 'Colorado, Zora Zaugg'],
+          [71, 633, housemate1.address],
+          [71, 623, "#{housemate1.zip_code} #{housemate1.town}"],
+          [71, 612, housemate1.country],
           [71, 531, 'Brief'],
           [71, 502, 'Hallo'],
           [71, 654, 'Bottom Member'],
@@ -412,7 +415,7 @@ describe Export::Pdf::Messages::Letter do
           [71, 654, 'Dominik Dachs'],
           [71, 644, single_person.address],
           [71, 633, "#{single_person.zip_code} #{single_person.town}"],
-          [71, 623, 'DE'],
+          [71, 623, single_person.country],
           [71, 531, 'Brief'],
           [71, 502, 'Hallo']
         ]

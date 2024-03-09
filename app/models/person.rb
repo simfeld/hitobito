@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-#  Copyright (c) 2012-2022, Pfadibewegung Schweiz. This file is part of
+#  Copyright (c) 2012-2024, Pfadibewegung Schweiz. This file is part of
 #  hitobito and licensed under the Affero General Public License version 3
 #  or later. See the COPYING file at the top-level directory or at
 #  https://github.com/hitobito/hitobito.
@@ -67,7 +67,7 @@ class Person < ActiveRecord::Base # rubocop:disable Metrics/ClassLength
   PUBLIC_ATTRS = [ # rubocop:disable Style/MutableConstant meant to be extended in wagons
     :id, :first_name, :last_name, :nickname, :company_name, :company,
     :email, :address, :zip_code, :town, :country, :gender, :birthday,
-    :picture, :primary_group_id
+    :primary_group_id
   ]
 
   INTERNAL_ATTRS = [ # rubocop:disable Style/MutableConstant meant to be extended in wagons
@@ -79,7 +79,12 @@ class Person < ActiveRecord::Base # rubocop:disable Metrics/ClassLength
     :show_global_label_formats, :household_key, :event_feed_token, :family_key,
     :two_factor_authentication, :encrypted_two_fa_secret,
     :confirmation_token, :confirmed_at, :confirmation_sent_at, :unconfirmed_email,
-    :privacy_policy_accepted_at
+    :self_registration_reason_custom_text,
+    :self_registration_reason_id,
+    :privacy_policy_accepted_at,
+    :blocked_at,
+    :inactivity_block_warning_sent_at,
+    :minimized_at
   ]
 
   FILTER_ATTRS = [ # rubocop:disable Style/MutableConstant meant to be extended in wagons
@@ -96,6 +101,9 @@ class Person < ActiveRecord::Base # rubocop:disable Metrics/ClassLength
                                      .additional_languages&.to_hash || {}).freeze
 
   ADDRESS_ATTRS = %w(address zip_code town country) # rubocop:disable Style/MutableConstant meant to be extended in wagons
+
+  # Configure which Person attributes can be used to identify a person for login.
+  class_attribute :devise_login_id_attrs, default: [:email]
 
   # define devise before other modules
   devise :database_authenticatable,
@@ -116,22 +124,33 @@ class Person < ActiveRecord::Base # rubocop:disable Metrics/ClassLength
   include ValidatedEmail
   include TwoFactorAuthenticatable
   include PersonTags::ValidationTagged
+  include People::SelfRegistrationReasons
 
   i18n_enum :gender, GENDERS
   i18n_setter :gender, (GENDERS + [nil])
   i18n_boolean_setter :company
 
-  mount_uploader :carrierwave_picture, Person::PictureUploader, mount_on: 'picture'
   has_one_attached :picture do |attachable|
     attachable.variant :thumb, resize_to_fill: [32, 32]
   end
+
+  def picture_default
+    'profil.png'
+  end
+
+  def picture_thumb_default
+    'profil_thumb.png'
+  end
+
+  class_attribute :used_attributes
+  self.used_attributes = PUBLIC_ATTRS + INTERNAL_ATTRS
 
   model_stamper
   stampable stamper_class_name: :person,
             deleter: false
 
   has_paper_trail meta: { main_id: ->(p) { p.id }, main_type: sti_name },
-                  skip: Person::INTERNAL_ATTRS + [:picture]
+                  skip: Person::INTERNAL_ATTRS
 
   acts_as_taggable
 
@@ -202,13 +221,15 @@ class Person < ActiveRecord::Base # rubocop:disable Metrics/ClassLength
   has_many :message_recipients, dependent: :nullify
 
   accepts_nested_attributes_for :relations_to_tails, allow_destroy: true
-  accepts_nested_attributes_for :family_members, allow_destroy: true
+  FeatureGate.if('people.family_members') do
+    accepts_nested_attributes_for :family_members, allow_destroy: true
+  end
 
   attr_accessor :household_people_ids, :shared_access_token
 
   ### VALIDATIONS
 
-  validates_by_schema except: [:email, :picture, :address]
+  validates_by_schema except: [:email, :address]
   validates :email, length: { allow_nil: true, maximum: 255 } # other email validations by devise
   validates :company_name, presence: { if: :company? }
   validates :language, inclusion: { in: LANGUAGES.keys.map(&:to_s) }
@@ -218,10 +239,8 @@ class Person < ActiveRecord::Base # rubocop:disable Metrics/ClassLength
   validate :assert_has_any_name
   validates :address, length: { allow_nil: true, maximum: 1024 }
 
-  if ENV['NOCHMAL_MIGRATION'].blank? # if not migrating RIGHT NOW, i.e. normal case
-    validates :picture, dimension: { width: { max: 8_000 }, height: { max: 8_000 } },
-                        content_type: ['image/jpeg', 'image/gif', 'image/png']
-  end
+  validates :picture, dimension: { width: { max: 8_000 }, height: { max: 8_000 } },
+                      content_type: ['image/jpeg', 'image/gif', 'image/png']
   # more validations defined by devise
 
 
@@ -231,6 +250,7 @@ class Person < ActiveRecord::Base # rubocop:disable Metrics/ClassLength
   before_validation :remove_blank_relations
   before_destroy :destroy_roles
   before_destroy :destroy_person_duplicates
+  after_update :schedule_duplicate_locator
 
   ### Scopes
 
@@ -284,6 +304,10 @@ class Person < ActiveRecord::Base # rubocop:disable Metrics/ClassLength
       Person.tags_on(:tags).order(:name).pluck(:name)
     end
 
+    def root
+      find_by(email: Settings.root_email)
+    end
+
     private
 
     def company_case_column(if_company, otherwise)
@@ -294,6 +318,18 @@ class Person < ActiveRecord::Base # rubocop:disable Metrics/ClassLength
 
 
   ### ATTRIBUTE INSTANCE METHODS
+
+  # Used to enable login with any of the attributes configured in `devise_login_id_attrs`
+  def login_identity
+    @login_identity || Array.wrap(devise_login_id_attrs).map do |key|
+      send(key).presence
+    end.compact.first
+  end
+  attr_writer :login_identity
+
+  def basic_permissions_only?
+    roles&.all?(&:basic_permissions_only)
+  end
 
   def privacy_policy_accepted?
     privacy_policy_accepted_at.present?
@@ -358,6 +394,7 @@ class Person < ActiveRecord::Base # rubocop:disable Metrics/ClassLength
   end
 
   def login_status
+    return :blocked if blocked?
     return :two_factors if two_factor_authentication
     return :login if email? && password?
     return :password_email_sent if reset_password_period_valid?
@@ -382,9 +419,14 @@ class Person < ActiveRecord::Base # rubocop:disable Metrics/ClassLength
     email == Settings.root_email
   end
 
+  # Is this person blocked?
+  def blocked?
+    read_attribute(:blocked_at).present?
+  end
+
   ### OTHER INSTANCE METHODS
 
-  def save(*args) # rubocop:disable Rails/ActiveRecordOverride Overwritten to handle uniqueness validation race conditions
+  def save(**) # rubocop:disable Rails/ActiveRecordOverride Overwritten to handle uniqueness validation race conditions
     super
   rescue ActiveRecord::RecordNotUnique
     # TODO: it makes no sense to add this error indiscriminate on the email attribute
@@ -398,7 +440,8 @@ class Person < ActiveRecord::Base # rubocop:disable Metrics/ClassLength
 
   def finance_groups
     groups_with_permission(:finance).
-      flat_map(&:layer_group)
+      flat_map(&:layer_group).
+      uniq
   end
 
   def table_display_for(table_model_class)
@@ -460,4 +503,12 @@ class Person < ActiveRecord::Base # rubocop:disable Metrics/ClassLength
     person_duplicates.delete_all
   end
 
+  def schedule_duplicate_locator
+    changed_attrs = previous_changes.keys
+    duplicate_attrs = People::DuplicateLocator::DUPLICATION_ATTRS.collect(&:to_s)
+
+    return unless changed_attrs.any? { |a| duplicate_attrs.include?(a) }
+
+    Person::DuplicateLocatorJob.new(id).enqueue!
+  end
 end

@@ -10,6 +10,8 @@ require 'mail'
 
 class Imap::Mail
 
+  MESSAGE_UID_REGEX = /X-Hitobito-Message-UID: ([a-z0-9]*)/.freeze
+
   attr_accessor :net_imap_mail
 
   delegate :subject, :sender, to: :envelope
@@ -33,11 +35,9 @@ class Imap::Mail
   end
 
   def sender_email
-    envelope.sender[0].mailbox + '@' + envelope.sender[0].host
-  end
+    return nil if envelope.sender.nil?
 
-  def sender_name
-    envelope.sender[0].name
+    envelope.sender[0].mailbox + '@' + envelope.sender[0].host
   end
 
   def email_to
@@ -45,7 +45,7 @@ class Imap::Mail
   end
 
   def sender_name
-    envelope.sender[0].name
+    envelope&.sender[0]&.name
   end
 
   def name_to
@@ -71,7 +71,7 @@ class Imap::Mail
   end
 
   def original_to
-    mail.header['X-Original-To'].value
+    first_header('X-Original-To')
   end
 
   def list_bounce?
@@ -79,12 +79,16 @@ class Imap::Mail
       bounce_hitobito_message_uid.present?
   end
 
+  def auto_response?
+    auto_response_header?
+  end
+
   def bounce_hitobito_message_uid
-    mail.body.raw_source[/X-Hitobito-Message-UID: ([a-z0-9]*)/,1]
+    mail.body.raw_source[MESSAGE_UID_REGEX, 1]
   end
 
   def mail
-    @mail ||= Mail.read_from_string(@net_imap_mail.attr['RFC822'])
+    @mail ||= ::Mail.read_from_string(@net_imap_mail.attr['RFC822'])
   end
 
   private
@@ -102,4 +106,14 @@ class Imap::Mail
     mail.header['Return-Path'].value
   end
 
+  # https://www.iana.org/assignments/auto-submitted-keywords/auto-submitted-keywords.xhtml
+  def auto_response_header?
+    mail.header['auto-submitted'].try(:value) == 'auto-generated'
+  end
+
+  def first_header(header_name)
+    first_header = Array(mail.header[header_name]).first
+
+    first_header.try(:value)
+  end
 end

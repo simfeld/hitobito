@@ -41,7 +41,8 @@ module NavigationHelper
     { label: :admin,
       url: :label_formats_path,
       icon_name: 'cog',
-      active_for: %w(label_formats
+      active_for: %w(self_registration_reasons
+                     label_formats
                      custom_contents
                      event_kinds
                      event_kind_categories
@@ -89,7 +90,7 @@ module NavigationHelper
     end
     content_tag(:li, class: classes) do
       navigation_text = icon(icon_name) + label
-      concat(link_to(navigation_text, url, data: { disable_with: navigation_text }))
+      concat(link_to(navigation_text, url, data: { turbo_submits_with: navigation_text }))
       yield if block_given? && active
     end
   end
@@ -102,7 +103,7 @@ module NavigationHelper
   # link url equals the request url.
   def section_active?(url, active_for = [], inactive_for = [])
     current_page?(url) ||
-      Array(active_for).any? { |p| request.path =~ %r{/?#{p}/?} } &&
-      Array(inactive_for).none? { |p| request.path =~ %r{/?#{p}/?} }
+      (Array(active_for).any? { |p| request.path =~ %r{/?#{p}/?} } &&
+      Array(inactive_for).none? { |p| request.path =~ %r{/?#{p}/?} })
   end
 end

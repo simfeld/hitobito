@@ -13,7 +13,6 @@ class GroupAbility < AbilityDsl::Base
     permission(:any).
       may(:read, :index_events, :'index_event/courses', :index_mailing_lists).
       if_any_role
-    permission(:any).may(:deleted_subgroups).if_member
 
     permission(:contact_data).may(:index_people).all
 
@@ -24,12 +23,14 @@ class GroupAbility < AbilityDsl::Base
       in_same_group_or_below
 
     permission(:group_full)
-      .may(:index_full_people, :export_events, :'export_event/courses', :reactivate)
+      .may(:index_full_people, :export_events, :'export_event/courses', :reactivate,
+            :deleted_subgroups)
       .in_same_group
     permission(:group_full).may(:update).in_same_group_if_active
 
     permission(:group_and_below_full)
-      .may(:index_full_people, :reactivate, :export_events, :'export_event/courses')
+      .may(:index_full_people, :reactivate, :export_events, :'export_event/courses',
+            :deleted_subgroups)
       .in_same_group_or_below
     permission(:group_and_below_full).may(:update).in_same_group_or_below_if_active
     permission(:group_and_below_full).may(:create).with_parent_in_same_group_hierarchy
@@ -45,7 +46,7 @@ class GroupAbility < AbilityDsl::Base
     permission(:layer_full).may(:index_service_tokens).service_token_in_same_layer
     permission(:layer_full)
       .may(:index_person_add_requests, :index_notes, :index_deleted_people, :show_statistics,
-           :index_calendars).in_same_layer
+           :index_calendars, :deleted_subgroups).in_same_layer
     permission(:layer_full)
       .may(:update, :reactivate,
            :manage_person_tags, :activate_person_add_requests, :deactivate_person_add_requests)
@@ -61,7 +62,7 @@ class GroupAbility < AbilityDsl::Base
     permission(:layer_and_below_full).may(:destroy).in_same_layer_or_below_except_permission_giving
     permission(:layer_and_below_full).
       may(:update, :reactivate, :index_person_add_requests, :index_notes, :show_statistics,
-          :manage_person_tags, :index_deleted_people).in_same_layer_or_below
+          :manage_person_tags, :index_deleted_people, :deleted_subgroups).in_same_layer_or_below
     permission(:layer_and_below_full).may(:modify_superior).in_below_layers_if_active
     permission(:layer_and_below_full).may(:index_service_tokens).service_token_in_same_layer
     permission(:layer_and_below_full).may(:index_calendars).in_same_layer
@@ -69,22 +70,33 @@ class GroupAbility < AbilityDsl::Base
       may(:activate_person_add_requests, :deactivate_person_add_requests).
       in_same_layer_if_active
 
+    permission(:see_invisible_from_above).may(:index_local_people).in_same_layer_or_below
+
     permission(:finance).may(:index_invoices).in_layer_group
     permission(:finance).may(:create_invoices_from_list).in_same_layer_or_below_if_active
 
     permission(:admin).may(:manage_person_duplicates).if_layer_group_if_active
     permission(:layer_and_below_full).may(:manage_person_duplicates).if_permission_in_layer
+    permission(:layer_and_below_full).
+      may(:manually_delete_people).
+      if_permission_in_layer_and_manual_deletion_enabled
 
     permission(:layer_full).may(:log).in_same_layer_if_active
     permission(:layer_and_below_full).may(:log).in_same_layer_or_below_if_active
     permission(:group_full).may(:log).in_same_group_if_active
     permission(:group_and_below_full).may(:log).in_same_group_or_below_if_active
 
+    permission(:admin).may(:set_main_self_registration_group).in_active_group
+
     general(:update).group_not_deleted
     general(:index_person_add_requests,
             :activate_person_add_requests,
             :deactivate_person_add_requests).
       if_layer_group
+  end
+
+  def if_permission_in_layer_and_manual_deletion_enabled
+    FeatureGate.enabled?('people.manual_deletion') && if_permission_in_layer
   end
 
   def if_permission_in_layer

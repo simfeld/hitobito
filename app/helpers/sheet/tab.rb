@@ -65,7 +65,7 @@ module Sheet
 
       def render(active = false)
         content_tag(:li,
-                    link_to(label, path, data: { disable_with: label }),
+                    link_to(label, path, data: { turbo_submits_with: label }),
                     class: active ? 'active' : nil)
       end
 
@@ -91,7 +91,7 @@ module Sheet
       end
 
       def current_page?
-        view.current_page?(path_for(path_method))
+        view.current_page?(path_for(path_method, params))
       end
 
       def alt_path_of?(current_path)

@@ -24,14 +24,16 @@ class SubscriptionsController < CrudController
         @person_add_requests = fetch_person_add_requests
         load_grouped_subscriptions
       end
-      format.pdf   { render_pdf_in_background(ordered_people,
-                                              parents.first,
-                                              "subscriptions_#{mailing_list.id}") }
-      format.csv   { render_tabular_in_background(:csv) }
-      format.xlsx  { render_tabular_in_background(:xlsx) }
-      format.vcf   { render_vcf(ordered_people.includes(:phone_numbers, :additional_emails)) }
-      format.email { render_emails(ordered_people.includes(:additional_emails)) }
-      format.json  { render_entry_json }
+      format.pdf           { render_pdf_in_background(ordered_people,
+                                                      parents.first,
+                                                      "subscriptions_#{mailing_list.id}") }
+      format.csv           { render_tabular_in_background(:csv) }
+      format.xlsx          { render_tabular_in_background(:xlsx) }
+      format.vcf           { render_vcf(ordered_people.includes(:phone_numbers,
+                                                                :additional_emails)) }
+      format.email         { render_emails(ordered_people.includes(:additional_emails), ',') }
+      format.email_outlook { render_emails(ordered_people.includes(:additional_emails), ';') }
+      format.json          { render_entry_json }
     end
   end
 
@@ -49,9 +51,9 @@ class SubscriptionsController < CrudController
   end
 
   # Override so we can pass preferred_labels from mailing_list
-  def render_emails(people)
+  def render_emails(people, separator = ',')
     emails = Person.mailing_emails_for(people, parent.labels)
-    render plain: emails.join(',')
+    render plain: emails.join(separator)
   end
 
   def render_tabular_in_background(format)
@@ -59,7 +61,8 @@ class SubscriptionsController < CrudController
       Export::SubscriptionsJob.new(format,
                                    current_person.id,
                                    mailing_list.id,
-                                   params.slice(:household).merge(filename: filename)).enqueue!
+                                   params.slice(:household, :selection)
+                                         .merge(filename: filename)).enqueue!
     end
   end
 

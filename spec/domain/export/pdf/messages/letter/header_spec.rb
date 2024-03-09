@@ -8,12 +8,16 @@
 require 'spec_helper'
 
 describe Export::Pdf::Messages::Letter::Header do
-  let(:base_options) { {
-    margin: Export::Pdf::Messages::Letter::MARGIN,
-    page_size: 'A4',
-    page_layout: :portrait,
-    compress: true
-  } }
+  include PdfHelpers
+
+  let(:base_options) do
+    {
+      margin: Export::Pdf::Messages::Letter::MARGIN,
+      page_size: 'A4',
+      page_layout: :portrait,
+      compress: true
+    }
+  end
   let(:options) { base_options }
   let(:top_group)  { groups(:top_group) }
   let(:top_leader) { people(:top_leader) }
@@ -26,34 +30,33 @@ describe Export::Pdf::Messages::Letter::Header do
                         shipping_method: 'normal', pp_post: 'CH-3030 Bern, Belpstrasse 37')
   end
   let(:pdf)      { Prawn::Document.new(options) }
-  let(:analyzer) { PDF::Inspector::Text.analyze(pdf.render) }
-  let(:image)    { Rails.root.join('spec/fixtures/files/images/logo.png') }
+
   let(:shipping_info_with_position_left) do
     [
       [71, 672, 'P.P.'],
       [91, 672, ' '],
-      [180, 685, 'Post CH AG'],
+      [134, 685, 'Post CH AG'],
       [94, 672, 'CH-3030 Bern, Belpstrasse 37'],
     ]
   end
   let(:shipping_info_with_position_right) do
     [
-      [378, 685, 'Post CH AG'],
-      [269, 672, 'P.P.'],
-      [289, 672, ' '],
-      [292, 672, 'CH-3030 Bern, Belpstrasse 37']
+      [424, 685, 'Post CH AG'],
+      [361, 672, 'P.P.'],
+      [381, 672, ' '],
+      [384, 672, 'CH-3030 Bern, Belpstrasse 37']
     ]
   end
 
   subject { described_class.new(pdf, letter, options) }
 
-  describe 'logo' do
+  def expects_image(id)
+    image_options = { position: :right }
+    expect_any_instance_of(Prawn::Document)
+      .to receive(:image).with(instance_of(Tempfile), image_options)
+  end
 
-    def expects_image(id)
-      image_options = { position: :right }
-      expect_any_instance_of(Prawn::Document)
-        .to receive(:image).with(instance_of(StringIO), image_options)
-    end
+  describe 'logo' do
 
     it 'has no logo' do
       expect_any_instance_of(Prawn::Document).not_to receive(:image)
@@ -79,40 +82,62 @@ describe Export::Pdf::Messages::Letter::Header do
       subject.render(recipient)
     end
 
+    it 'has the correct position and size' do
+      assign_image(top_group.layer_group)
+      subject.render(recipient)
+
+      expect(image_positions).to have(1).item
+      expect(image_positions.first).to match(
+        x: 294.41386,
+        y: 741.02386,
+        width: 230,
+        height: 30,
+        displayed_width: 52_900.0,
+        displayed_height: 900.0
+      )
+    end
+
     context 'image scaling' do
-
-      let(:image) { Rails.root.join("spec/fixtures/files/#{@image}") }
-      # let(:image_group_id) { assign_image(top_group) }
-      # let(:image_path) { %r{/picture/#{image_group_id}/logo.*\.png} }
-
-      xit 'does not scale if image smaller than logo box' do
-        @image = 'images/logo.png' # 230x30px
-
-        image_options = options.merge(position: :right)
-        expect_any_instance_of(Prawn::Document)
-          .to receive(:image).with(instance_of(StringIO), image_options)
-
+      it 'does not scale if image smaller than logo box' do
+        assign_image(top_group, 'images/logo.png') # 230x30px
         subject.render(recipient)
+
+        expect(image_positions.first).to match(
+          x: 294.41386,
+          y: 741.02386,
+          width: 230,
+          height: 30,
+          displayed_width: 52_900.0,
+          displayed_height: 900.0
+        )
       end
 
-      xit 'scales down image if image width exceeds logo box' do
-        @image = 'images/logo_1000x40.png'
-
-        image_options = options.merge(fit: [450, 40], position: :right)
-        expect_any_instance_of(Prawn::Document)
-          .to receive(:image).with(instance_of(StringIO), image_options)
-
+      it 'scales down image if image width exceeds logo box' do
+        assign_image(top_group, 'images/logo_1000x40.png') # 1000x40px
         subject.render(recipient)
+
+        expect(image_positions.first).to match(
+          x: 74.41386,
+          y: 753.02386,
+          width: 1000,
+          height: 40,
+          displayed_width: 450_000.0,
+          displayed_height: 720.0
+        )
       end
 
-      xit 'scales down image if image height exceeds logo box' do
-        @image = 'images/logo_200x100.png'
-
-        image_options = options.merge(fit: [450, 40], position: :right)
-        expect_any_instance_of(Prawn::Document)
-          .to receive(:image).with(instance_of(StringIO), image_options)
-
+      it 'scales down image if image height exceeds logo box' do
+        assign_image(top_group, 'images/logo_200x100.png') # 200x100px
         subject.render(recipient)
+
+        expect(image_positions.first).to match(
+          x: 444.41386,
+          y: 731.02386,
+          width: 200,
+          height: 100,
+          displayed_width: 16_000.0,
+          displayed_height: 4000.0
+        )
       end
     end
   end
@@ -132,7 +157,8 @@ describe Export::Pdf::Messages::Letter::Header do
     end
 
     it 'same position when logo is present' do
-      assign_image(top_group)
+      id = assign_image(top_group)
+      expects_image(id)
       subject.render(recipient)
 
       expect(text_with_position_without_shipping_info).to eq [
@@ -187,7 +213,7 @@ describe Export::Pdf::Messages::Letter::Header do
 
     context 'rendered left' do
       before do
-        top_group.settings(:messages_letter).address_position = :left
+        top_group.letter_address_position = :left
         top_group.save!
       end
 
@@ -229,7 +255,7 @@ describe Export::Pdf::Messages::Letter::Header do
 
     context 'rendered right' do
       before do
-        top_group.settings(:messages_letter).address_position = :right
+        top_group.letter_address_position = :right
         top_group.save!
       end
 
@@ -237,8 +263,8 @@ describe Export::Pdf::Messages::Letter::Header do
         subject.render(recipient)
 
         expect(text_with_position_without_shipping_info).to eq [
-          [269, 652, 'Top Leader'],
-          [269, 624, 'Supertown']
+          [361, 652, 'Top Leader'],
+          [361, 624, 'Supertown']
         ]
       end
 
@@ -247,8 +273,8 @@ describe Export::Pdf::Messages::Letter::Header do
         subject.render(recipient)
 
         expect(text_with_position_without_shipping_info).to eq [
-          [269, 652, 'Top Leader'],
-          [269, 624, 'Supertown']
+          [361, 652, 'Top Leader'],
+          [361, 624, 'Supertown']
         ]
       end
 
@@ -257,7 +283,7 @@ describe Export::Pdf::Messages::Letter::Header do
         subject.render(recipient)
 
         expect(text_with_position_without_shipping_info).to eq [
-          [269, 652, 'Top Leader']
+          [361, 652, 'Top Leader']
         ]
       end
 
@@ -283,7 +309,7 @@ describe Export::Pdf::Messages::Letter::Header do
 
     context 'rendered right' do
       before do
-        top_group.settings(:messages_letter).address_position = :right
+        top_group.letter_address_position = :right
         top_group.save!
       end
 
@@ -299,21 +325,15 @@ describe Export::Pdf::Messages::Letter::Header do
 
   private
 
-  def text_with_position
-    analyzer.positions.each_with_index.collect do |p, i|
-      p.collect(&:round) + [analyzer.show_text[i]]
-    end
-  end
-
   def text_with_position_without_shipping_info
     text_with_position - (shipping_info_with_position_left + shipping_info_with_position_right)
   end
 
-  def assign_image(group)
-    gs = GroupSetting.find_or_create_by!(target: group, var: :messages_letter)
-    gs.picture.attach(io: StringIO.new(image.read), filename: image.basename.to_s)
+  def assign_image(group, image = 'images/logo.png')
+    group.letter_logo.attach(fixture_file_upload(image))
+    group.save!
 
-    gs.id
+    group.id
   end
 
 end

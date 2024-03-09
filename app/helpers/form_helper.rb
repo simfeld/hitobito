@@ -1,6 +1,6 @@
-# encoding: utf-8
+# frozen_string_literal: true
 
-#  Copyright (c) 2012-2015, Jungwacht Blauring Schweiz. This file is part of
+#  Copyright (c) 2012-2023, Jungwacht Blauring Schweiz. This file is part of
 #  hitobito and licensed under the Affero General Public License version 3
 #  or later. See the COPYING file at the top-level directory or at
 #  https://github.com/hitobito/hitobito.
@@ -46,7 +46,9 @@ module FormHelper
     standard_form(object, options) do |form|
       content = form.error_messages
 
-      content << form_buttons(form, form_button_options.merge(toolbar_class: 'top')) if buttons_top
+      if buttons_top
+        content << form_buttons(form, **form_button_options.merge(toolbar_class: 'top'))
+      end
 
       content << if block_given?
                    capture(form, &block)
@@ -55,7 +57,7 @@ module FormHelper
                  end
 
       if buttons_bottom
-        content << form_buttons(form, form_button_options.merge(toolbar_class: 'bottom'))
+        content << form_buttons(form, **form_button_options.merge(toolbar_class: 'bottom'))
       end
 
       content.html_safe
@@ -63,13 +65,16 @@ module FormHelper
   end
 
   def button_toolbar(form, toolbar_class:, &block)
-    content_tag(:div, class: "btn-toolbar #{toolbar_class}") do
-      capture(form, &block)
+    offset_classes = 'offset-md-3 offset-xl-2'
+    content_tag(:div, class: 'row mb-2 mt-0') do
+      content_tag(:div, class: "#{toolbar_class} #{offset_classes}") do
+        capture(form, &block)
+      end
     end
   end
 
-  def form_buttons(form, submit_label: ti(:"button.save"), cancel_url: nil, toolbar_class: nil,
-                          add_another: false, add_another_label: ti(:"button.add_another"))
+  def form_buttons(form, submit_label: ti(:'button.save'), cancel_url: nil, toolbar_class: nil,
+                   add_another: false, add_another_label: ti(:'button.add_another'))
     button_toolbar(form, toolbar_class: toolbar_class) do
       content = submit_button(form, submit_label)
       content << add_another_button(form, add_another_label) if add_another.present?
@@ -81,19 +86,25 @@ module FormHelper
 
   def add_another_button(form, label, options = {})
     content_tag(:div, class: 'btn-group') do
-      form.button(label, options.merge(name: :add_another, class: 'btn btn-primary',
+      form.button(label, options.merge(name: :add_another, class: 'btn btn-sm btn-primary mt-2',
                                        data: { disable: true }))
     end
   end
 
   def submit_button(form, label, options = {})
-    content_tag(:div, class: 'btn-group') do
-      form.button(label, options.merge(class: 'btn btn-primary', data: { disable_with: label }))
+    if options[:display_as_link]
+      form.button(label, options.merge(class: 'btn btn-sm btn-link',
+                                       data: { turbo_submits_with: label }))
+    else
+      content_tag(:div, class: 'btn-group') do
+        form.button(label, options.merge(class: 'btn btn-sm btn-primary mt-2',
+                                         data: { turbo_submits_with: label }))
+      end
     end
   end
 
   def cancel_link(url)
-    link_to(ti(:"button.cancel"), url, class: 'link cancel')
+    link_to(ti(:'button.cancel'), url, class: 'link cancel')
   end
 
   def spinner(visible = false)
@@ -111,7 +122,11 @@ module FormHelper
   # 3. Use polymorphic_path(object)
   def get_cancel_url(object, options)
     if params[:return_url].present?
-      url = URI.parse(params[:return_url]).path rescue nil
+      url = begin
+        URI.parse(params[:return_url]).path
+      rescue
+        nil
+      end
       return url if url
     end
 

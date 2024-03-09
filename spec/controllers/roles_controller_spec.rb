@@ -270,11 +270,37 @@ describe RolesController do
         end
       end
     end
+  end
 
+  describe 'GET edit' do
+    before { role } # create it
+    let(:page) { Capybara::Node::Simple.new(response.body) }
+    let(:today) { Time.zone.today }
+    let(:today_localized) { I18n.l(today) }
+
+    render_views
+
+    it 'renders no flash message if role is not outdated' do
+      get :edit, params: { group_id: group.id, id: role.id }
+      expect(page).to have_css '#flash', text: ''
+    end
+
+    it 'renders flash message for outedated deleted role' do
+      role.update_columns(delete_on: Time.zone.today)
+      get :edit, params: { group_id: group.id, id: role.id }
+      expect(page).to have_css('#flash .alert.alert-danger', text: 'Die Rolle konnte nicht ' \
+                               "wie geplant am #{today_localized} terminiert werden")
+    end
+
+    it 'renders flash message for outedated future role' do
+      Role.where(id: role.id).update_all(type: FutureRole.sti_name, convert_to: role.type, convert_on: today)
+      get :edit, params: { group_id: group.id, id: role.id }
+      expect(page).to have_css('#flash .alert.alert-danger', text: 'Die Rolle konnte nicht wie ' \
+                               "geplant per #{today_localized} aktiviert werden")
+    end
   end
 
   describe 'PUT update' do
-
     before { role } # create it
 
     it 'without type displays error' do
@@ -318,6 +344,54 @@ describe RolesController do
 
       # new role's group also assigned to person's primary group
       expect(person.reload.primary_group).to eq group2
+    end
+
+    context 'delete_on in the past' do
+      let(:yesterday) { Time.zone.yesterday }
+      it 'destroys role' do
+        role.update!(created_at: yesterday - 3.hours)
+        expect do
+          put :update, params: { group_id: group.id, id: role.id, role: { delete_on: yesterday } }
+        end.to change { Role.count }.by(-1)
+        expect(response).to redirect_to(person_path(person, format: :html))
+        expect(flash[:notice]).to eq "Rolle <i>Member (bis #{yesterday.strftime('%d.%m.%Y')})</i> für <i>#{person}</i> in <i>TopGroup</i> wurde erfolgreich gelöscht."
+      end
+
+      it 'renders validation message if delete_in is before create_on invalid' do
+        expect do
+          put :update,
+              params: { group_id: group.id, id: role.id,
+                        role: { delete_on: yesterday, create_on: Date.today } }
+        end.not_to(change { Role.count })
+        expect(response).to render_template('edit') # with error message in form
+      end
+
+      it 'renders edit and error messages if destroy does not succeed' do
+        allow_any_instance_of(Role).to receive(:valid?).and_return(true)
+        allow_any_instance_of(Role).to receive(:destroy).and_return(false)
+        expect do
+          put :update, params: { group_id: group.id, id: role.id, role: { delete_on: yesterday } }
+        end.not_to(change { Role.count })
+        expect(response).to render_template('edit')
+        expect(flash.now[:alert]).to eq "Rolle <i>Member (bis #{yesterday.strftime('%d.%m.%Y')})</i> für <i>#{person}</i> in <i>TopGroup</i> konnte nicht gelöscht werden."
+      end
+
+    end
+    context 'his own role' do
+      let(:tomorrow) { Time.zone.tomorrow }
+      let(:role) { roles(:top_leader) }
+
+      it 'cannot set deleted_at on his own role' do
+        expect do
+          put :update, params: { group_id: group.id, id: role.id, role: { deleted_at: tomorrow } }
+        end.not_to change { role.reload.deleted_at }
+      end
+
+      it 'cannot set delete_on on his own role' do
+        expect do
+          put :update, params: { group_id: group.id, id: role.id, role: { delete_on: tomorrow } }
+        end.not_to change { role.reload.delete_on }
+      end
     end
 
     context 'multiple groups' do

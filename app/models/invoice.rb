@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-#  Copyright (c) 2012-2022, Jungwacht Blauring Schweiz. This file is part of
+#  Copyright (c) 2012-2024, Jungwacht Blauring Schweiz. This file is part of
 #  hitobito and licensed under the Affero General Public License version 3
 #  or later. See the COPYING file at the top-level directory or at
 #  https://github.com/hitobito/hitobito.
@@ -58,11 +58,13 @@ class Invoice < ActiveRecord::Base
 
   SEQUENCE_NR_SEPARATOR = '-'
 
-  STATES = %w(draft issued sent payed reminded cancelled).freeze
-  STATES_REMINDABLE = %w(issued sent reminded).freeze
-  STATES_PAYABLE = %w(issued sent reminded).freeze
+  # rubocop:disable Style/MutableConstant meant to be extended in wagons
+  STATES = %w(draft issued sent partial payed excess reminded cancelled)
+  STATES_REMINDABLE = %w(issued sent partial reminded)
+  STATES_PAYABLE = %w(issued sent partial reminded)
 
-  DUE_SINCE = %w(one_day one_week one_month).freeze
+  DUE_SINCE = %w(one_day one_week one_month)
+  # rubocop:enable Style/MutableConstant meant to be extended in wagons
 
   belongs_to :group
   belongs_to :recipient, class_name: 'Person'
@@ -112,16 +114,15 @@ class Invoice < ActiveRecord::Base
       draft_or_issued(from: Date.new(year, 1, 1), to: Date.new(year, 12, 31))
     end
 
-    def draft_or_issued(from: , to: )
-      from ||= Date.today.beginning_of_year
-      to ||= Date.today.end_of_year
-      from = Date.parse(from) if from.is_a? String
-      to = Date.parse(to) if to.is_a? String
+    def draft_or_issued(from:, to:)
+      from = Date.parse(from.to_s) rescue Time.zone.today.beginning_of_year # rubocop:disable Style/RescueModifier
+      to = Date.parse(to.to_s) rescue Time.zone.today.end_of_year # rubocop:disable Style/RescueModifier
 
       condition = OrCondition.new
-      condition.or('issued_at > :from AND issued_at < :to', from: from, to: to)
+      condition.or('issued_at >= :from AND issued_at <= :to', from: from, to: to)
       condition.or('issued_at IS NULL AND ' \
-                   'invoices.created_at > :from AND invoices.created_at < :to', from: from, to: to)
+                   'invoices.created_at >= :from AND invoices.created_at <= :to',
+                   from: from, to: to)
       where(condition.to_a)
     end
 
@@ -143,7 +144,29 @@ class Invoice < ActiveRecord::Base
         "CAST(SUBSTRING_INDEX(#{field}, '-', #{index}) AS UNSIGNED)"
       end
     end
+
+    def order_by_payment_statement
+      'last_payments.received_at'
+    end
+
+    def order_by_amount_paid_statement
+      'last_payments.amount_paid'
+    end
+
+    def last_payments_information
+      <<~SQL.squish
+        LEFT OUTER JOIN (
+          SELECT invoice_id,
+                 MAX(received_at) AS received_at,
+                 SUM(amount) AS amount_paid
+          FROM payments
+          GROUP BY invoice_id
+        ) AS last_payments ON invoices.id = last_payments.invoice_id
+      SQL
+    end
   end
+
+  delegate :logo_position, to: :invoice_config
 
   def calculated
     [:total, :cost, :vat].index_with do |field|
@@ -169,6 +192,10 @@ class Invoice < ActiveRecord::Base
 
   def payable?
     STATES_PAYABLE.include?(state)
+  end
+
+  def payed?
+    state.payed? || state.excess?
   end
 
   def includes_dynamic_invoice_items?
@@ -236,7 +263,7 @@ class Invoice < ActiveRecord::Base
     end
   end
 
-  def set_dates
+  def set_dates # rubocop:disable Metrics/CyclomaticComplexity
     self.sent_at ||= Time.zone.today if sent?
     if sent? || issued?
       self.issued_at ||= Time.zone.today

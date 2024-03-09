@@ -10,14 +10,17 @@ module UtilityHelper
   # Overridden method that takes a block that is executed for each item in array
   # before appending the results.
   def safe_join(array, sep = $OUTPUT_FIELD_SEPARATOR, &block)
-    super(block_given? ? array.collect(&block).compact : array, sep)
+    if block_given?
+      array = array.collect(&block).compact
+    end
+    super(array, sep)
   end
 
   # Returns the css class for the given flash level.
   def flash_class(level)
     case level
     when :notice then 'success'
-    when :alert then 'error'
+    when :alert then 'danger'
     else level.to_s
     end
   end

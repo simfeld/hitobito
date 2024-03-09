@@ -25,7 +25,9 @@ module PeopleHelper
         password_email_sent: 'user-clock',
         login: 'user-check',
         two_factors: 'user-shield',
-        status_off: 'minus-circle'
+        status_off: 'minus-circle',
+        blocked: 'user-lock',
+        not_blocked: 'lock-open'
     }
     icon(
         icons.fetch(status),
@@ -130,7 +132,7 @@ module PeopleHelper
 
   def openstreetmap_url(query_params)
     URI::HTTP.build(host: 'nominatim.openstreetmap.org',
-                    path: '/search.php',
+                    path: '/ui/search.html',
                     query: query_params).to_s
   end
 
@@ -151,8 +153,8 @@ module PeopleHelper
     address.to_s.split("\n").join(', ')
   end
 
-  def person_otp_qr_code(person, secret)
-    qr_code = People::OneTimePassword.new(secret, person: person).provisioning_qr_code
+  def person_otp_qr_code(otp)
+    qr_code = otp.provisioning_qr_code
     base64_data = Base64.encode64(qr_code.to_blob)
     "data:image/png;base64,#{base64_data}"
   end

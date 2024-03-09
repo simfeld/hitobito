@@ -1,0 +1,86 @@
+name: "Composition Repo - Determine Settings"
+
+on:
+  workflow_call:
+    inputs:
+      repository:
+        description: "Composition repository, e.g. hitobito/ose_composition_sjas"
+        required: true
+        type: string
+      stage:
+        description: "Stage of release to be prepared, e.g. integration"
+        required: true
+        type: string
+      release_type:
+        description: "Type of Release: regular, patch or custom"
+        required: false
+        type: string
+        default: "regular"
+      dry_run:
+        description: "Do not execute the commands"
+        required: false
+        type: boolean
+        default: false
+
+    outputs:
+      project:
+        value: ${{ jobs.settings.outputs.project }}
+      repo_name:
+        value: ${{ jobs.settings.outputs.repo_name }}
+      repo_url:
+        value: ${{ jobs.settings.outputs.repo_url }}
+      composition_branch:
+        value: ${{ jobs.settings.outputs.composition_branch }}
+      release_stage:
+        value: ${{ jobs.settings.outputs.release_stage }}
+      release_type:
+        value: ${{ jobs.settings.outputs.release_type }}
+      dry_run:
+        value: ${{ jobs.settings.outputs.dry_run }}
+
+jobs:
+  settings:
+    runs-on: ubuntu-latest
+
+    outputs:
+      project: ${{ steps.determine.outputs.project }}
+      repo_name: ${{ steps.determine.outputs.repo_name }}
+      repo_url: ${{ steps.determine.outputs.repo_url }}
+      composition_branch: ${{ steps.determine.outputs.branch }}
+      release_stage: ${{ steps.determine.outputs.stage }}
+      release_type: ${{ steps.determine.outputs.release_type }}
+      dry_run: ${{ steps.determine.outputs.dry_run }}
+
+
+    steps:
+      - name: Infer project-name and stage-settings
+        id: determine
+        env:
+          STAGE: ${{ inputs.stage }}
+          REPO: ${{ inputs.repository }}
+          RELEASE_TYPE: ${{ inputs.release_type }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          echo "stage=${STAGE}" >> "$GITHUB_OUTPUT"
+          echo "repo_name=${REPO}" >> "$GITHUB_OUTPUT"
+
+          echo "repo_url=https://github.com/${REPO}.git" >> "$GITHUB_OUTPUT"
+          echo "project=${REPO##hitobito/ose_composition_}" >> "$GITHUB_OUTPUT"
+
+          if [[ "${DRY_RUN}" = 'true' ]]; then
+            echo 'dry_run=-n' >> "$GITHUB_OUTPUT"
+          else
+            echo 'dry_run=' >> "$GITHUB_OUTPUT"
+          fi
+
+          case $STAGE in
+            production)
+              echo "branch=production" >> "$GITHUB_OUTPUT"
+              echo "release_type=${RELEASE_TYPE}" >> "$GITHUB_OUTPUT"
+            ;;
+
+            integration)
+              echo "branch=devel" >> "$GITHUB_OUTPUT"
+              echo "release_type=integration" >> "$GITHUB_OUTPUT"
+            ;;
+          esac;

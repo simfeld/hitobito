@@ -5,7 +5,7 @@
 #  or later. See the COPYING file at the top-level directory or at
 #  https://github.com/hitobito/hitobito.
 
-class RolesController < CrudController
+class RolesController < CrudController # rubocop:disable Metrics/ClassLength
   include PrivacyPolicyAcceptable
 
   respond_to :js
@@ -24,10 +24,10 @@ class RolesController < CrudController
   before_render_form :set_group_selection
   before_render_create :set_group_selection
 
-  before_action :set_person_id, only: [:new] # rubocop:disable Rails/LexicallyScopedActionFilter
+  before_action :set_person_id, only: [:new]
   before_action :remember_primary_group, only: [:destroy, :update]
-  after_destroy :last_primary_group_role_deleted
-  after_update :last_primary_group_role_deleted
+  before_action :set_outdated_flash_message, only: [:edit]
+  after_action :last_primary_group_role_deleted, only: [:destroy, :update]
 
   def create
     assign_attributes
@@ -35,6 +35,8 @@ class RolesController < CrudController
       new_person = entry.person.new_record?
       created = create_entry_and_person
       add_privacy_policy_not_accepted_error if new_person
+      return destroy_and_redirect if destroy_on_create?
+
       respond_with(entry, success: created, location: after_create_location(new_person))
     end
   end
@@ -45,6 +47,8 @@ class RolesController < CrudController
       change_type
     else
       assign_attributes
+      return destroy_and_redirect if entry.valid? && entry.delete_on&.past?
+
       super(location: after_update_location)
     end
   end
@@ -71,6 +75,20 @@ class RolesController < CrudController
   end
 
   private
+
+  def destroy_and_redirect
+    destroyed = run_callbacks(:destroy) { entry.destroy }
+    if destroyed
+      redirect_to(after_update_location, notice: flash_message(:success, :destroy))
+    else
+      flash.now[:alert] = error_messages.presence || flash_message(:failure, :destroy)
+      render :edit
+    end
+  end
+
+  def destroy_on_create?
+    entry.persisted? && entry.delete_on&.past?
+  end
 
   def with_person_add_request(&block)
     creator = Person::AddRequest::Creator::Group.new(entry, current_ability)
@@ -132,7 +150,7 @@ class RolesController < CrudController
   end
 
   def copy_errors(new_role)
-    entry.attributes = new_role.attributes.except('id')
+    entry.attributes = new_role.attributes.except('id', 'terminated')
     new_role.errors.each do |error|
       entry.errors.add(error.attribute, error.message)
     end
@@ -156,11 +174,15 @@ class RolesController < CrudController
 
   def build_role
     type = extract_model_attr(:type)
-    if type.present?
-      @type = @group.class.find_role_type!(type)
-      @type.new
+    start_at = extract_start_at
+    return Role.new(convert_on: start_at) if type.blank?
+
+    @type = @group.class.find_role_type!(type)
+
+    if start_at&.future?
+      FutureRole.new(convert_to: @type, convert_on: start_at, created_at: Time.zone.now)
     else
-      Role.new
+      @type.new(created_at: start_at)
     end
   end
 
@@ -177,9 +199,12 @@ class RolesController < CrudController
   end
 
   def permitted_params(role_type = entry.class)
-    permitted_attrs = role_type.used_attributes 
-    permitted_attrs -= [:deleted_at] unless can?(:destroy, @role)
-    model_params.permit(permitted_attrs)
+    @permitted_params ||=
+      begin
+        permitted_attrs = role_type.used_attributes + [:convert_on]
+        permitted_attrs -= [:deleted_at, :delete_on] unless can?(:destroy, @role)
+        model_params.permit(permitted_attrs)
+      end
   end
 
   def find_group
@@ -217,7 +242,8 @@ class RolesController < CrudController
   def after_update_location
     return group_person_path(entry.group_id, entry.person_id) unless entry.deleted?
 
-    can?(:show, entry.person) ? person_path(entry.person_id) : group_path(parent)
+    # NOTE - as people#show responds to explicit result turbo_stream format
+    can?(:show, entry.person) ? person_path(entry.person_id, format: :html) : group_path(parent)
   end
 
   def set_group_selection
@@ -248,7 +274,7 @@ class RolesController < CrudController
   end
 
   def belongs_to_persons_primary_group?(role)
-    role.group_id == role.person.primary_group_id
+    role.in_primary_group?
   end
 
   def set_person_id
@@ -267,4 +293,17 @@ class RolesController < CrudController
     entry.group
   end
 
+  def extract_start_at
+    Date.parse(delete_model_param(:created_at) || delete_model_param(:convert_on))
+  rescue TypeError, Date::Error
+    nil
+  end
+
+  def delete_model_param(key)
+    model_params&.delete(key).presence
+  end
+
+  def set_outdated_flash_message
+    flash.now[:alert] = entry.decorate.outdated_role_title if entry.outdated?
+  end
 end

@@ -47,8 +47,8 @@ class Event::RegisterController < ApplicationController
       set_privacy_policy_acceptance if privacy_policy_needed_and_accepted?
 
       sign_in(:person, entry.person)
-      flash[:notice] = translate(:registered)
-      redirect_to new_group_event_participation_path(group, event)
+      flash[:notice] = registered_notice
+      redirect_to return_path || new_group_event_participation_path(group, event)
     else
       add_privacy_policy_not_accepted_error(entry)
       render 'register'
@@ -60,6 +60,11 @@ class Event::RegisterController < ApplicationController
   # NOTE: Wagon Hook - insieme
   def save_entry
     entry.valid? && privacy_policy_accepted? && entry.save
+  end
+
+  # NOTE: Wagon Hook - youth
+  def registered_notice
+    translate(:registered)
   end
 
   def assert_external_application_possible
@@ -76,7 +81,7 @@ class Event::RegisterController < ApplicationController
   end
 
   def assert_honeypot_is_empty
-    if (params[:person] || params[:event_participation_contact_data]).delete(:verification).present?
+    if params[params_key].delete(:verification).present?
       redirect_to event_or_login_page
     end
   end
@@ -86,7 +91,11 @@ class Event::RegisterController < ApplicationController
   end
 
   def entry
-    @participation_contact_data ||= Event::ParticipationContactData.new(event, person, model_params)
+    @participation_contact_data ||= contact_data_class.new(event, person, model_params)
+  end
+
+  def contact_data_class
+    Event::ParticipationContactData
   end
 
   def model_params
@@ -94,7 +103,8 @@ class Event::RegisterController < ApplicationController
   end
 
   def params_key
-    %w(event_participation_contact_data person).find { |key| params.key?(key) }
+    [contact_data_class.to_s.underscore.gsub('/', '_'),
+     'person'].find { |key| params.key?(key) }
   end
 
   alias resource person # used by devise-form
@@ -125,5 +135,15 @@ class Event::RegisterController < ApplicationController
 
   def privacy_policy_param
     params.require(params_key)[:privacy_policy_accepted]
+  end
+
+  def return_path
+    if params[:return_url].present?
+      begin
+        URI.parse(params[:return_url]).path
+      rescue URI::Error
+        nil
+      end
+    end
   end
 end

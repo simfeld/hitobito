@@ -12,18 +12,20 @@ class RoleAbility < AbilityDsl::Base
   on(Role) do
     class_side(:role_types, :details).all
 
-    permission(:group_full).may(:create, :update, :destroy)
+    permission(:group_full).may(:create, :update, :destroy, :terminate)
                            .in_same_group_if_active
 
-    permission(:group_and_below_full).may(:create, :update, :destroy)
+    permission(:group_and_below_full).may(:create, :update, :destroy, :terminate)
                                      .in_same_group_or_below_if_active
 
-    permission(:layer_full).may(:create, :create_in_subgroup, :update, :destroy)
+    permission(:layer_full).may(:create, :create_in_subgroup, :update, :destroy, :terminate)
                            .in_same_layer_if_active
 
     permission(:layer_and_below_full).
-      may(:create, :create_in_subgroup, :update, :destroy).
+      may(:create, :create_in_subgroup, :update, :destroy, :terminate).
       in_same_layer_or_visible_below
+
+    permission(:any).may(:terminate).her_own
 
     general.non_restricted
     general(:create).group_not_deleted_or_archived
@@ -36,7 +38,8 @@ class RoleAbility < AbilityDsl::Base
         subject.visible_from_above? &&
         permission_in_layers?(group.layer_hierarchy.collect(&:id)) &&
         in_active_group
-      )
+      ) ||
+      can_see_invisible_in_layer_or_above
   end
 
   def non_restricted
@@ -52,6 +55,17 @@ class RoleAbility < AbilityDsl::Base
 
   def not_own_role?
     subject.person_id != user.id
+  end
+
+  def can_see_invisible_in_layer_or_above
+    contains_any?(
+      subject.group.layer_hierarchy.collect(&:id),
+      user_context.permission_layer_ids(:see_invisible_from_above)
+    )
+  end
+
+  def her_own
+    subject.person_id == user.id
   end
 
   private

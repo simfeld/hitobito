@@ -1,4 +1,4 @@
-# encoding: utf-8
+# frozen_string_literal: true
 
 #  Copyright (c) 2012-2017, Jungwacht Blauring Schweiz. This file is part of
 #  hitobito and licensed under the Affero General Public License version 3
@@ -12,8 +12,9 @@ describe SphinxIndexJob do
   subject { SphinxIndexJob.new }
 
   it 'disables job if sphinx running on external host' do
+    allow(Hitobito::Application).to receive(:sphinx_local?).and_return(true)
     SphinxIndexJob.new.schedule
-    expect(Hitobito::Application).to receive(:sphinx_local?).twice.and_return(false)
+    allow(Hitobito::Application).to receive(:sphinx_local?).and_return(false)
     expect do
       subject.perform
     end.to change { Delayed::Job.count }.by(-1)
