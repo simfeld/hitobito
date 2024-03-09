@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Webhook < ActiveRecord::Base
   belongs_to :layer, class_name: 'Group', foreign_key: :layer_group_id
 
