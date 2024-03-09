@@ -305,6 +305,8 @@ Hitobito::Application.routes.draw do
         get 'feed' => 'calendars/feeds#index'
       end
 
+      resources :webhooks
+
       resource :csv_imports, only: [:new, :create], controller: 'person/csv_imports' do
         member do
           post :define_mapping
