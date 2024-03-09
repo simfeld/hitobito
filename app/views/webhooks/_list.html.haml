@@ -1,0 +1,9 @@
+- title Webhook.model_name.human(count: :many)
+
+= crud_table do |t|
+  - t.col(Webhook.human_attribute_name(:target_url))
+  - t.col(Webhook.human_attribute_name(:webhook_type))
+  - t.col(Webhook.human_attribute_name(:group))
+
+  - unless @group.archived?
+    - add_table_actions(t)
