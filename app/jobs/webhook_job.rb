@@ -7,17 +7,17 @@
 
 class WebhookJob < BaseJob
 
-  PERSON_FIELDS = %i(id pbs_number first_name last_name nickname address town zip_code country
-                      primary_group_id).freeze
-  GROUP_FIELDS = %i(id parent_id type name).freeze
-  EVENT_FIELDS = %i(id location).freeze
-  TRANSLATIONS_FIELDS = %i(locale name description).freeze
+  PERSON_FIELDS = [:id, :pbs_number, :first_name, :last_name, :nickname, :address, :town,
+                   :zip_code, :country, :primary_group_id].freeze
+  GROUP_FIELDS = [:id, :parent_id, :type, :name].freeze
+  EVENT_FIELDS = [:id, :location].freeze
+  TRANSLATIONS_FIELDS = [:locale, :name, :description].freeze
 
-  self.parameters = [:webhook_id, :data]
+  self.parameters = [:webhook, :data]
 
   def initialize(webhook, data)
     super()
-    @webhook_id = webhook.id
+    @webhook = webhook
     @data = data
   end
 
@@ -31,9 +31,9 @@ class WebhookJob < BaseJob
   end
 
   def perform_add_request_created
-    group = Group.find_by!(id: @data[:group_id])
-    requester = Person.find_by!(id: @data[:requester_id])
-    subject = Person.find_by!(id: @data[:subject_id])
+    group = Group.find(@data[:group_id])
+    requester = Person.find(@data[:requester_id])
+    subject = Person.find(@data[:subject_id])
     payload = {
       group: serialize(group),
       requester: serialize(requester),
@@ -43,9 +43,9 @@ class WebhookJob < BaseJob
   end
 
   def perform_add_request_approved
-    group = Group.find_by!(id: @data[:group_id])
-    approver = Person.find_by!(id: @data[:approver_id])
-    subject = Person.find_by!(id: @data[:subject_id])
+    group = Group.find(@data[:group_id])
+    approver = Person.find(@data[:approver_id])
+    subject = Person.find(@data[:subject_id])
     payload = {
       group: serialize(group),
       approver: serialize(approver),
@@ -78,12 +78,8 @@ class WebhookJob < BaseJob
     end
   end
 
-  def webhook
-    @webhook ||= Webhook.find_by(id: @webhook_id)
-  end
-
   def send(payload)
-    uri = URI.parse(webhook.target_url)
+    uri = URI.parse(@webhook.target_url)
 
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true unless uri.scheme == 'http'
@@ -91,6 +87,8 @@ class WebhookJob < BaseJob
     request = Net::HTTP::Post.new(uri.request_uri, headers)
     request.body = payload.to_json
     http.request(request)
+  rescue StandardError
+    false
   end
 
   def set_translations(item, key)
